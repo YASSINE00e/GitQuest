@@ -1123,14 +1123,537 @@ function escHtml(s) {
 }
 
 /* ══════════════════════════════════════════════
+   TUTORIAL DATA  (8 lessons)
+   Each lesson: id, title, content (HTML string)
+══════════════════════════════════════════════ */
+const LESSONS = [
+  {
+    id: 1,
+    title: 'What is Git?',
+    icon: '🧠',
+    lead: 'Git is a distributed version control system that tracks changes in your files over time. It lets you collaborate with others, experiment safely, and roll back mistakes — all without fear.',
+    content: `
+      <h3>The problem Git solves</h3>
+      <p>Imagine you're working on a project. You save <em>app.js</em>, then break something. You wish you could go back to yesterday's version. Or you're on a team — two people edit the same file and one person's work overwrites the other's.</p>
+      <p>Git solves both problems. It's a <strong>version control system (VCS)</strong> — software that records every change you make, who made it, and when. Think of it as an unlimited undo history for your entire project.</p>
+
+      <div class="tut-callout info">
+        <span class="tut-callout-icon">💡</span>
+        <div>Git was created by <strong>Linus Torvalds</strong> in 2005 to manage the Linux kernel source code. Today it's the most widely used VCS in the world, powering GitHub, GitLab, Bitbucket, and millions of projects.</div>
+      </div>
+
+      <h3>What makes Git "distributed"?</h3>
+      <p>Unlike older VCS tools, every developer has a <strong>full copy</strong> of the entire repository — history and all. You can commit, branch, and review history entirely offline. You only need a network connection when you want to share your work with others.</p>
+
+      <div class="tut-terms">
+        <div class="tut-term"><span class="tut-term-key">Repository</span><span class="tut-term-val">A folder tracked by Git. Contains your files plus a hidden <em>.git</em> directory that stores all history.</span></div>
+        <div class="tut-term"><span class="tut-term-key">Commit</span><span class="tut-term-val">A snapshot of your project at a point in time. Like a save point in a video game.</span></div>
+        <div class="tut-term"><span class="tut-term-key">Branch</span><span class="tut-term-val">A parallel line of development. Work on features independently, then merge them back.</span></div>
+        <div class="tut-term"><span class="tut-term-key">Remote</span><span class="tut-term-val">A copy of the repository hosted on a server (e.g. GitHub) that team members share.</span></div>
+      </div>
+
+      <h3>Git vs GitHub — what's the difference?</h3>
+      <p><strong>Git</strong> is the tool. It runs on your computer and manages your local repository. <strong>GitHub</strong> (and GitLab, Bitbucket) are cloud hosting services for Git repositories — they add collaboration features on top: pull requests, issue tracking, CI/CD pipelines.</p>
+      <p>You can use Git perfectly well without GitHub, but GitHub makes sharing and collaborating much easier.</p>
+
+      <div class="tut-callout tip">
+        <span class="tut-callout-icon">✅</span>
+        <div><strong>Key takeaway:</strong> Git tracks the history of your project locally. It gives you a safety net, lets you experiment freely, and enables teamwork without file collisions.</div>
+      </div>
+    `
+  },
+  {
+    id: 2,
+    title: 'Core Concepts',
+    icon: '🗂️',
+    lead: 'Before typing a single command, understanding Git\'s three-area model is the most important thing you can learn. Once it clicks, everything else makes sense.',
+    content: `
+      <h3>The three areas of Git</h3>
+      <p>Git thinks of your project in three distinct areas. Files move between them as you work:</p>
+
+      <div class="tut-diagram">
+        <div class="stage-flow">
+          <div class="sf-box">
+            <span class="sf-icon">📁</span>
+            <span class="sf-name">Working Directory</span>
+            <span class="sf-sub">Your actual files</span>
+          </div>
+          <div class="sf-arrow">
+            <span>→</span>
+            <span class="sf-arrow-label">git add</span>
+          </div>
+          <div class="sf-box sf-accent">
+            <span class="sf-icon">📋</span>
+            <span class="sf-name">Staging Area</span>
+            <span class="sf-sub">Planned snapshot</span>
+          </div>
+          <div class="sf-arrow">
+            <span>→</span>
+            <span class="sf-arrow-label">git commit</span>
+          </div>
+          <div class="sf-box">
+            <span class="sf-icon">🗄️</span>
+            <span class="sf-name">Repository</span>
+            <span class="sf-sub">Permanent history</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tut-terms">
+        <div class="tut-term"><span class="tut-term-key">Working Directory</span><span class="tut-term-val">The files you see and edit on your computer. Changes here are "untracked" until you stage them.</span></div>
+        <div class="tut-term"><span class="tut-term-key">Staging Area (Index)</span><span class="tut-term-val">A preparation zone. You explicitly choose which changes go into the next commit by staging them with <em>git add</em>.</span></div>
+        <div class="tut-term"><span class="tut-term-key">Repository (.git)</span><span class="tut-term-val">The permanent record. Once committed, changes are saved with their full history and cannot be easily lost.</span></div>
+      </div>
+
+      <h3>Why have a staging area?</h3>
+      <p>The staging area is what makes Git precise. You might change 5 files in one work session, but want to split that into 2 logical commits — one for a bug fix, one for a new feature. By staging selectively, you craft exactly the snapshot you want.</p>
+
+      <div class="tut-callout info">
+        <span class="tut-callout-icon">💡</span>
+        <div>A good commit is a <strong>single logical change</strong> with a clear message. Not "fixed stuff" — but "fix: null pointer in user login". This makes history readable and rollbacks surgical.</div>
+      </div>
+
+      <h3>Understanding HEAD</h3>
+      <p><strong>HEAD</strong> is Git's pointer to your current position — usually the tip of the branch you're on. When you make a commit, HEAD advances to point to it. When you switch branches, HEAD moves to point to that branch's latest commit.</p>
+
+      <div class="tut-callout warn">
+        <span class="tut-callout-icon">⚠️</span>
+        <div>If HEAD points directly to a commit instead of a branch, you're in "detached HEAD" state. You can look around, but don't commit — create a branch first.</div>
+      </div>
+    `
+  },
+  {
+    id: 3,
+    title: 'Your First Repository',
+    icon: '🚀',
+    lead: 'Time to get hands-on. This lesson walks through creating a repository and making your first commit — the foundation of everything else in Git.',
+    content: `
+      <h3>Initializing a repo</h3>
+      <p>Navigate to your project folder and run one command to turn it into a Git repository:</p>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmd">git init</span>
+<span class="c-ok">Initialized empty Git repository in ~/myproject/.git/</span></pre></div>
+      <p>This creates a hidden <em>.git</em> folder. Don't touch it manually — that's Git's brain.</p>
+
+      <h3>Checking what Git sees</h3>
+      <p>Before staging anything, ask Git what's going on in your working directory:</p>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmd">git status</span>
+On branch main
+
+No commits yet
+
+Untracked files:
+  (use "git add &lt;file&gt;..." to include in what will be committed)
+        <span class="c-path">README.md</span>
+        <span class="c-path">src/app.js</span></pre></div>
+      <p>Untracked means Git sees the files but is not yet watching them for changes.</p>
+
+      <h3>Staging files</h3>
+      <p>Tell Git which files to include in the next snapshot:</p>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmt"># Stage a single file</span>
+<span class="c-cmd">git add README.md</span>
+
+<span class="c-cmt"># Stage everything</span>
+<span class="c-cmd">git add .</span>
+
+<span class="c-cmt"># Verify what's staged</span>
+<span class="c-cmd">git status</span>
+Changes to be committed:
+        <span class="c-ok">new file:   README.md</span>
+        <span class="c-ok">new file:   src/app.js</span></pre></div>
+
+      <h3>Making your first commit</h3>
+      <p>Seal the staged snapshot into permanent history with a message explaining <em>why</em> this change was made:</p>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmd">git commit -m <span class="c-str">"Initial commit: add README and app entry point"</span></span>
+[main (root-commit) <span class="c-cmt">a3f9d12</span>] Initial commit: add README and app entry point
+ 2 files changed, 15 insertions(+)</pre></div>
+
+      <div class="tut-callout tip">
+        <span class="tut-callout-icon">✅</span>
+        <div><strong>Write commit messages in imperative mood:</strong> "Add login form" not "Added login form". Prefix with a type: <em>feat:</em>, <em>fix:</em>, <em>docs:</em>, <em>refactor:</em> for extra clarity.</div>
+      </div>
+
+      <h3>Reviewing history</h3>
+      <p>After a few commits, inspect the history with <em>git log</em>:</p>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmd">git log --oneline</span>
+<span class="c-cmt">c2d1e4f</span> feat: add user authentication
+<span class="c-cmt">b5a3c9e</span> fix: handle null case in login
+<span class="c-cmt">a3f9d12</span> Initial commit: add README and app entry point</pre></div>
+      <p>The short SHA (e.g. <em>a3f9d12</em>) uniquely identifies each commit. You can reference any commit by its SHA in other commands.</p>
+    `
+  },
+  {
+    id: 4,
+    title: 'Branching',
+    icon: '🌿',
+    lead: 'Branches are Git\'s killer feature. They let you work on multiple things simultaneously without interfering with each other — isolated workspaces that share the same history.',
+    content: `
+      <h3>What is a branch?</h3>
+      <p>A branch is simply a lightweight, movable pointer to a commit. Creating a branch doesn't copy any files — it just creates a new pointer. This makes branches nearly instant and free to create.</p>
+
+      <div class="tut-diagram">
+        <div class="branch-vis"><span class="bv-commit">●</span>──<span class="bv-commit">●</span>──<span class="bv-commit">●</span>  ← <span class="bv-main">main</span>
+                     ↘
+                      <span class="bv-commit">●</span>──<span class="bv-commit">●</span>  ← <span class="bv-feat">feature/login</span> <span class="bv-head">(HEAD)</span></div>
+      </div>
+
+      <p>Both branches share the first three commits. The feature branch has two additional commits that exist only on that branch. <em>main</em> is unaffected.</p>
+
+      <h3>Creating and switching branches</h3>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmt"># Create a branch (stay where you are)</span>
+<span class="c-cmd">git branch feature/login</span>
+
+<span class="c-cmt"># Switch to it</span>
+<span class="c-cmd">git switch feature/login</span>
+
+<span class="c-cmt"># Or do both in one command (preferred)</span>
+<span class="c-cmd">git switch -c feature/login</span>
+<span class="c-ok">Switched to a new branch 'feature/login'</span></pre></div>
+
+      <h3>Working on a branch</h3>
+      <p>Once on your feature branch, work normally — edit files, stage, commit. Your changes exist only on this branch until you merge them.</p>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmt"># See all branches (* = current)</span>
+<span class="c-cmd">git branch</span>
+<span class="c-ok">* feature/login</span>
+  main
+
+<span class="c-cmt"># Switch back to main</span>
+<span class="c-cmd">git switch main</span></pre></div>
+
+      <div class="tut-callout info">
+        <span class="tut-callout-icon">💡</span>
+        <div><strong>Branch naming conventions:</strong> Use <em>feature/</em>, <em>fix/</em>, <em>hotfix/</em>, <em>release/</em> prefixes to categorize branches. Use hyphens, not spaces: <em>feature/user-auth</em> not <em>feature/user auth</em>.</div>
+      </div>
+
+      <h3>Deleting a branch</h3>
+      <p>After merging, clean up old branches:</p>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmt"># Safe delete (only if merged)</span>
+<span class="c-cmd">git branch -d feature/login</span>
+<span class="c-ok">Deleted branch feature/login (was c2d1e4f).</span>
+
+<span class="c-cmt"># Force delete (even if unmerged)</span>
+<span class="c-cmd">git branch -D feature/experiment</span></pre></div>
+    `
+  },
+  {
+    id: 5,
+    title: 'Merging & Conflicts',
+    icon: '🔀',
+    lead: 'Merging brings diverged branches back together. Most of the time Git handles it automatically. When it can\'t, you\'ll get a conflict — and learning to resolve one is an essential skill.',
+    content: `
+      <h3>Merging a branch</h3>
+      <p>To integrate a feature branch back into <em>main</em>, switch to main first, then merge:</p>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmd">git switch main</span>
+<span class="c-cmd">git merge feature/login</span>
+<span class="c-ok">Updating a3f9d12..c2d1e4f
+Fast-forward
+ src/auth.js | 45 ++++++++++++
+ 1 file changed, 45 insertions(+)</span></pre></div>
+
+      <h3>Fast-forward vs merge commit</h3>
+      <div class="tut-terms">
+        <div class="tut-term"><span class="tut-term-key">Fast-forward</span><span class="tut-term-val">When main hasn't moved since the branch was created, Git just moves the pointer forward. Clean, linear history — no extra commit.</span></div>
+        <div class="tut-term"><span class="tut-term-key">Merge commit</span><span class="tut-term-val">When both branches have new commits, Git creates a new "merge commit" that has two parents, preserving the full history of both lines.</span></div>
+      </div>
+
+      <div class="tut-diagram">
+        <div class="branch-vis"><span class="c-cmt bv-commit">Fast-forward:</span>
+<span class="bv-commit">●</span>──<span class="bv-commit">●</span>──<span class="bv-commit">●</span>──<span class="bv-commit">●</span>──<span class="bv-commit">●</span>  ← <span class="bv-main">main</span> (moved forward)
+
+<span class="c-cmt bv-commit">Merge commit:</span>
+<span class="bv-commit">●</span>──<span class="bv-commit">●</span>──<span class="bv-commit">●</span>──────────<span class="bv-merge">M</span>  ← <span class="bv-main">main</span>
+          ↘  <span class="bv-feat">feature</span>  ↗</div>
+      </div>
+
+      <h3>Merge conflicts</h3>
+      <p>A conflict happens when two branches changed the <strong>same lines</strong> of the same file differently. Git can't decide which version wins — so it asks you.</p>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">conflict markers in file</span></div><pre><span class="c-cmt">&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD  (your current branch)</span>
+const greeting = "Hello, world!";
+<span class="c-cmt">=======</span>
+const greeting = "Hi there!";
+<span class="c-cmt">&gt;&gt;&gt;&gt;&gt;&gt;&gt; feature/login  (incoming branch)</span></pre></div>
+      <p>To resolve: <strong>edit the file</strong> to the version you want (removing the markers), then stage and commit:</p>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmt"># After editing the file manually:</span>
+<span class="c-cmd">git add src/greeting.js</span>
+<span class="c-cmd">git commit -m <span class="c-str">"merge: resolve greeting conflict"</span></span></pre></div>
+
+      <div class="tut-callout warn">
+        <span class="tut-callout-icon">⚠️</span>
+        <div>Conflicts look scary but are normal. Always communicate with teammates about which section to keep. Never blindly accept "ours" or "theirs" — read both sides first.</div>
+      </div>
+    `
+  },
+  {
+    id: 6,
+    title: 'Remote Repositories',
+    icon: '☁️',
+    lead: 'Remotes connect your local repository to the world. This is how you back up your work, share it with teammates, and collaborate on open-source projects.',
+    content: `
+      <h3>What is a remote?</h3>
+      <p>A remote is a version of your repository hosted on another server — usually GitHub, GitLab, or a private server. By convention the primary remote is named <em>origin</em>.</p>
+
+      <div class="tut-terms">
+        <div class="tut-term"><span class="tut-term-key">origin</span><span class="tut-term-val">The default name for the remote you cloned from, or the first remote you added. You can rename it.</span></div>
+        <div class="tut-term"><span class="tut-term-key">upstream</span><span class="tut-term-val">Convention for the original repo when you've forked someone else's project. Your fork is origin, their repo is upstream.</span></div>
+      </div>
+
+      <h3>Connecting to a remote</h3>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmt"># Add a remote (if you didn't clone)</span>
+<span class="c-cmd">git remote add origin https://github.com/user/repo.git</span>
+
+<span class="c-cmt"># Verify remotes</span>
+<span class="c-cmd">git remote -v</span>
+<span class="c-ok">origin  https://github.com/user/repo.git (fetch)
+origin  https://github.com/user/repo.git (push)</span></pre></div>
+
+      <h3>Push — send your commits</h3>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmt"># First push — set upstream tracking</span>
+<span class="c-cmd">git push -u origin main</span>
+
+<span class="c-cmt"># Subsequent pushes (shorthand)</span>
+<span class="c-cmd">git push</span></pre></div>
+
+      <h3>Fetch & Pull — get remote changes</h3>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmt"># Fetch: download changes WITHOUT merging</span>
+<span class="c-cmd">git fetch origin</span>
+<span class="c-cmt"># Then you can inspect with: git log origin/main</span>
+
+<span class="c-cmt"># Pull: fetch + merge in one step</span>
+<span class="c-cmd">git pull origin main</span></pre></div>
+
+      <div class="tut-callout info">
+        <span class="tut-callout-icon">💡</span>
+        <div>Prefer <strong>fetch + review + merge</strong> over a blind <em>git pull</em> on important branches. Fetching first lets you see what's coming before it lands in your code.</div>
+      </div>
+
+      <h3>Cloning an existing repo</h3>
+      <p>If a repository already exists on GitHub, clone it to get a full local copy:</p>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmd">git clone https://github.com/user/repo.git</span>
+<span class="c-cmt"># This automatically sets origin and checks out main</span></pre></div>
+    `
+  },
+  {
+    id: 7,
+    title: 'Undoing Changes',
+    icon: '↩️',
+    lead: 'One of Git\'s superpowers is the ability to undo almost anything. But the right tool depends on what you want to undo and whether you\'ve shared those commits with others.',
+    content: `
+      <h3>The undo toolkit</h3>
+      <div class="tut-terms">
+        <div class="tut-term"><span class="tut-term-key">git restore</span><span class="tut-term-val">Discard uncommitted changes in working directory or unstage files. Safe — no history modified.</span></div>
+        <div class="tut-term"><span class="tut-term-key">git commit --amend</span><span class="tut-term-val">Rewrite the most recent commit. Use to fix a typo in the message or add forgotten files.</span></div>
+        <div class="tut-term"><span class="tut-term-key">git revert</span><span class="tut-term-val">Create a new commit that undoes a previous one. <strong>Safe for shared history</strong> — doesn't rewrite.</span></div>
+        <div class="tut-term"><span class="tut-term-key">git reset</span><span class="tut-term-val">Move HEAD (and optionally the working tree) to a previous commit. <strong>Dangerous on shared branches</strong> — rewrites history.</span></div>
+      </div>
+
+      <h3>Discarding working directory changes</h3>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmt"># Discard changes in one file (can't undo!)</span>
+<span class="c-cmd">git restore app.js</span>
+
+<span class="c-cmt"># Unstage a file (keep the changes)</span>
+<span class="c-cmd">git restore --staged app.js</span></pre></div>
+
+      <h3>The three flavors of reset</h3>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmt"># --soft: undo commit, keep changes STAGED</span>
+<span class="c-cmd">git reset --soft HEAD~1</span>
+
+<span class="c-cmt"># --mixed (default): undo commit, unstage changes</span>
+<span class="c-cmd">git reset HEAD~1</span>
+
+<span class="c-cmt"># --hard: undo commit AND discard all changes (danger!)</span>
+<span class="c-cmd">git reset --hard HEAD~1</span></pre></div>
+
+      <div class="tut-callout warn">
+        <span class="tut-callout-icon">⚠️</span>
+        <div><strong>Never use git reset on shared/published commits.</strong> If teammates already pulled those commits, resetting and force-pushing will cause serious problems. Use <em>git revert</em> instead.</div>
+      </div>
+
+      <h3>Safely reverting a commit</h3>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmt"># Revert the last commit (creates a new undo-commit)</span>
+<span class="c-cmd">git revert HEAD</span>
+
+<span class="c-cmt"># Revert a specific commit by SHA</span>
+<span class="c-cmd">git revert a3f9d12</span></pre></div>
+
+      <h3>Reflog — the ultimate safety net</h3>
+      <p>Git keeps a local log of every position HEAD has been, even after resets. If you accidentally lose commits, <em>git reflog</em> can save you:</p>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmd">git reflog</span>
+<span class="c-cmt">c2d1e4f HEAD@{0}: reset: moving to HEAD~1
+a3f9d12 HEAD@{1}: commit: feat: add login
+...</span>
+<span class="c-cmd">git reset --hard a3f9d12</span>  <span class="c-cmt"># recover lost commit</span></pre></div>
+    `
+  },
+  {
+    id: 8,
+    title: 'Advanced Workflows',
+    icon: '⚡',
+    lead: 'With the fundamentals down, these tools will level up your Git game: rebasing for clean history, stashing for context switching, and tags for marking releases.',
+    content: `
+      <h3>Rebasing — rewrite history cleanly</h3>
+      <p>Rebasing re-applies your commits on top of another branch, creating a linear history without merge commits:</p>
+      <div class="tut-diagram">
+        <div class="branch-vis"><span class="c-cmt">Before rebase:</span>
+<span class="bv-commit">A</span>──<span class="bv-commit">B</span>──<span class="bv-commit">C</span>           ← <span class="bv-main">main</span>
+     ↘
+      <span class="bv-commit">D</span>──<span class="bv-commit">E</span>         ← <span class="bv-feat">feature</span>
+
+<span class="c-cmt">After: git rebase main</span>
+<span class="bv-commit">A</span>──<span class="bv-commit">B</span>──<span class="bv-commit">C</span>──<span class="bv-commit">D'</span>──<span class="bv-commit">E'</span>  ← <span class="bv-feat">feature</span> (replayed)</div>
+      </div>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmt"># From your feature branch:</span>
+<span class="c-cmd">git rebase main</span>
+
+<span class="c-cmt"># Interactive rebase — squash, edit, reorder commits</span>
+<span class="c-cmd">git rebase -i HEAD~3</span></pre></div>
+
+      <div class="tut-callout warn">
+        <span class="tut-callout-icon">⚠️</span>
+        <div><strong>Never rebase shared/public branches.</strong> Rebasing rewrites commit SHAs — anyone who based work on those commits will have conflicts. Rebase only on local or personal branches.</div>
+      </div>
+
+      <h3>Stashing — save work in progress</h3>
+      <p>Need to switch branches but not ready to commit? Stash it:</p>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmt"># Save current work</span>
+<span class="c-cmd">git stash</span>
+<span class="c-ok">Saved working directory and index state WIP on main</span>
+
+<span class="c-cmt"># ... do other work, switch branches, etc. ...</span>
+
+<span class="c-cmt"># Get it back</span>
+<span class="c-cmd">git stash pop</span>
+
+<span class="c-cmt"># See all stashes</span>
+<span class="c-cmd">git stash list</span></pre></div>
+
+      <h3>Tags — mark releases</h3>
+      <p>Tags are fixed pointers to commits — perfect for marking version releases:</p>
+      <div class="tut-code"><div class="tut-code-bar"><span class="tut-code-lang">bash</span></div><pre><span class="c-cmt"># Lightweight tag</span>
+<span class="c-cmd">git tag v1.0.0</span>
+
+<span class="c-cmt"># Annotated tag (recommended — includes message & metadata)</span>
+<span class="c-cmd">git tag -a v1.0.0 -m <span class="c-str">"Release version 1.0.0"</span></span>
+
+<span class="c-cmt"># Push tags to remote</span>
+<span class="c-cmd">git push origin --tags</span></pre></div>
+
+      <div class="tut-callout tip">
+        <span class="tut-callout-icon">✅</span>
+        <div><strong>You're ready.</strong> You know how Git thinks, how to track changes, branch, merge, collaborate, undo mistakes, and use advanced tools. Head to the Exercises tab to put it all into practice — and keep the Cheat Sheet handy!</div>
+      </div>
+    `
+  }
+];
+
+/* ══════════════════════════════════════════════
+   TUTORIAL UI
+══════════════════════════════════════════════ */
+let tutProgress = {};  // { [lessonId]: true } — lessons read
+let activeLessonId = 1;
+
+function initTutorial() {
+  tutProgress = getTutProgress();
+  buildTutSidebar();
+  showLesson(1);
+}
+
+function getTutProgress() {
+  try { return JSON.parse(localStorage.getItem('gq_tut') || '{}'); }
+  catch { return {}; }
+}
+function saveTutProgress() { localStorage.setItem('gq_tut', JSON.stringify(tutProgress)); }
+
+function buildTutSidebar() {
+  const ul = document.getElementById('tut-lesson-list');
+  ul.innerHTML = '';
+  LESSONS.forEach(lesson => {
+    const li = document.createElement('li');
+    li.className = 'tut-lesson-item'
+      + (lesson.id === activeLessonId ? ' tl-active' : '')
+      + (tutProgress[lesson.id] ? ' tl-read' : '');
+    li.dataset.id = lesson.id;
+    li.innerHTML = `
+      <span class="tl-num">${tutProgress[lesson.id] ? '✓' : lesson.id}</span>
+      <span class="tl-label">${lesson.icon} ${lesson.title}</span>
+    `;
+    li.addEventListener('click', () => showLesson(lesson.id));
+    ul.appendChild(li);
+  });
+
+  const readCount = Object.keys(tutProgress).length;
+  document.getElementById('tut-progress-text').textContent = `${readCount} / ${LESSONS.length} read`;
+}
+
+function showLesson(id) {
+  activeLessonId = id;
+  const lesson = LESSONS.find(l => l.id === id);
+  if (!lesson) return;
+
+  // Mark as read
+  tutProgress[id] = true;
+  saveTutProgress();
+
+  buildTutSidebar();
+
+  const isFirst = id === LESSONS[0].id;
+  const isLast  = id === LESSONS[LESSONS.length - 1].id;
+  const prevLesson = !isFirst ? LESSONS.find(l => l.id === id - 1) : null;
+  const nextLesson = !isLast  ? LESSONS.find(l => l.id === id + 1) : null;
+
+  document.getElementById('tut-main').innerHTML = `
+    <div class="tut-lesson-header">
+      <div class="tut-lesson-eyebrow">Lesson ${id} of ${LESSONS.length}</div>
+      <h2 class="tut-lesson-title">${lesson.icon} ${lesson.title}</h2>
+      <p class="tut-lesson-lead">${lesson.lead}</p>
+    </div>
+    <div class="tut-body">${lesson.content}</div>
+    <div class="tut-nav">
+      <button class="tut-nav-btn" id="tut-prev" ${isFirst ? 'disabled' : ''}>
+        ← ${prevLesson ? prevLesson.title : 'Previous'}
+      </button>
+      <span class="tut-read-badge">✓ Lesson read</span>
+      ${isLast
+        ? `<button class="tut-nav-btn primary" id="tut-go-exercises">Go to Exercises →</button>`
+        : `<button class="tut-nav-btn primary" id="tut-next">${nextLesson ? nextLesson.title : 'Next'} →</button>`
+      }
+    </div>
+  `;
+
+  // Wire navigation buttons
+  const prevBtn = document.getElementById('tut-prev');
+  if (prevBtn && !isFirst) prevBtn.addEventListener('click', () => showLesson(id - 1));
+
+  const nextBtn = document.getElementById('tut-next');
+  if (nextBtn) nextBtn.addEventListener('click', () => showLesson(id + 1));
+
+  const exBtn = document.getElementById('tut-go-exercises');
+  if (exBtn) {
+    exBtn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelector('[data-tab="exercises"]').classList.add('active');
+      document.getElementById('tab-exercises').classList.add('active');
+    });
+  }
+
+  // Scroll to top
+  document.getElementById('tut-main').scrollTop = 0;
+  window.scrollTo(0, 0);
+}
+
+/* ══════════════════════════════════════════════
    8. UI — TAB NAVIGATION
 ══════════════════════════════════════════════ */
+let tutorialInited = false;
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'tutorial' && !tutorialInited) {
+      tutorialInited = true;
+      initTutorial();
+    }
   });
 });
 
@@ -1160,6 +1683,18 @@ document.getElementById('badge-close').addEventListener('click', () => {
 /* ══════════════════════════════════════════════
   10. INIT
 ══════════════════════════════════════════════ */
+
+/* ── Theme toggle ── */
+(function() {
+  const saved = localStorage.getItem('gq_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('gq_theme', next);
+  });
+})();
 
 /* Sandbox terminal */
 (function() {
@@ -1198,6 +1733,9 @@ nicknameInput.addEventListener('keydown', e => { if(e.key==='Enter') launch(nick
 document.getElementById('reset-btn').addEventListener('click', () => {
   if (!confirm('Reset all progress? This cannot be undone.')) return;
   Storage.reset();
+  localStorage.removeItem('gq_tut');
+  tutProgress = {};
+  tutorialInited = false;
   progress = { completed:[], hintUsed:[], score:0 };
   document.getElementById('score-display').textContent = '0';
   activeId = null;
