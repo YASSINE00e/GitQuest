@@ -131,7 +131,8 @@
                 <span class="term-bar-label" id="ex-term-label">Mission Terminal</span>
               </div>
               <div id="ex-out" class="term-out"></div>
-              <div class="term-row">
+              <div class="term-row ac-row">
+                <div id="ex-ac" class="ac-box"></div>
                 <span id="ex-ps1" class="term-ps1">user@gitquest:~/repo$&nbsp;</span>
                 <input id="ex-input" class="term-in" type="text" autocomplete="off" spellcheck="false" aria-label="Enter git command" />
               </div>
@@ -158,30 +159,93 @@
 
       <!-- SANDBOX -->
       <section id="tab-sandbox" class="view">
-        <div class="sandbox-wrap">
-          <div class="page-head">
+        <div class="sb-outer">
+
+          <!-- Header -->
+          <div class="sb-toprow">
             <div>
               <h2 class="page-title">Sandbox</h2>
-              <p class="page-sub">Free-form terminal — experiment with any command safely</p>
+              <p class="page-sub">Create files, branch, commit — watch the graph update live</p>
             </div>
             <div class="pill-row">
-              <span class="cpill">git init</span><span class="cpill">git status</span>
-              <span class="cpill">git log --oneline</span><span class="cpill">git stash</span>
-              <span class="cpill">git diff</span>
+              <span class="cpill">git init</span>
+              <span class="cpill">git add .</span>
+              <span class="cpill">git commit -m ""</span>
+              <span class="cpill">mkdir src</span>
+              <span class="cpill">touch file.txt</span>
             </div>
           </div>
-          <div class="term-card term-card-tall">
-            <div class="term-bar">
-              <span class="tdot tdot-r"></span><span class="tdot tdot-y"></span><span class="tdot tdot-g"></span>
-              <span class="term-bar-label">sandbox — ~/repo</span>
-              <button id="clear-sb" class="term-bar-btn">clear</button>
+
+          <!-- Main 2-column area -->
+          <div class="sb-body">
+
+            <!-- LEFT: Terminal -->
+            <div class="sb-terminal-col">
+              <div class="term-card sb-term-card">
+                <div class="term-bar">
+                  <span class="tdot tdot-r"></span>
+                  <span class="tdot tdot-y"></span>
+                  <span class="tdot tdot-g"></span>
+                  <span class="term-bar-label">sandbox — ~/repo</span>
+                  <button id="clear-sb" class="term-bar-btn">clear</button>
+                </div>
+                <div id="sb-out" class="term-out sb-term-out"></div>
+                <div class="term-row ac-row">
+                  <div id="sb-ac" class="ac-box"></div>
+                  <span id="sb-ps1" class="term-ps1">user@gitquest:~/repo$&nbsp;</span>
+                  <input id="sb-in" class="term-in" type="text" autocomplete="off" spellcheck="false" aria-label="Sandbox command input" />
+                </div>
+              </div>
             </div>
-            <div id="sb-out" class="term-out term-out-tall"></div>
-            <div class="term-row">
-              <span id="sb-ps1" class="term-ps1">user@gitquest:~/repo$&nbsp;</span>
-              <input id="sb-in" class="term-in" type="text" autocomplete="off" spellcheck="false" aria-label="Sandbox input" />
-            </div>
-          </div>
+
+            <!-- RIGHT: Working Directory (30%) + Commit Graph (60%) stacked -->
+            <div class="sb-right-col">
+
+              <!-- Working Directory — 30% height -->
+              <div class="sb-panel sb-tree-panel sb-tree-fixed">
+                <div class="sp-bar sp-bar-themed">
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
+                    <rect x="1" y="1" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.3" opacity=".5"/>
+                    <line x1="4" y1="14" x2="12" y2="14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" opacity=".5"/>
+                  </svg>
+                  <span class="sp-bar-title sp-bar-title-themed">Working Directory</span>
+                  <span id="tree-git-label" class="sp-git-badge" style="display:none">.git</span>
+                </div>
+                <div class="sp-tree-body" id="tree-wrap">
+                  <div id="file-tree" class="file-tree">
+                    <div class="ft-empty">No files yet — try <code>touch README.txt</code></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Commit Graph — 60% height -->
+              <div class="sb-panel sb-graph-panel sb-graph-fixed">
+                <div class="sp-bar sp-bar-dark">
+                  <span class="sp-mac-dot sp-mac-r"></span>
+                  <span class="sp-mac-dot sp-mac-y"></span>
+                  <span class="sp-mac-dot sp-mac-g"></span>
+                  <span class="sp-bar-title">Commit Graph</span>
+                  <span id="graph-head-label" class="sp-head-label"></span>
+                </div>
+                <div class="sp-graph-body" id="graph-wrap">
+                  <div class="graph-empty" id="graph-empty">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".3">
+                      <circle cx="12" cy="4" r="2.5"/><circle cx="12" cy="20" r="2.5"/>
+                      <circle cx="4" cy="12" r="2.5"/><circle cx="20" cy="12" r="2.5"/>
+                      <line x1="12" y1="6.5" x2="12" y2="17.5"/>
+                      <line x1="6.5" y1="10.5" x2="10.5" y2="7"/>
+                    </svg>
+                    <p>Run <code>git init</code> then commit to see the graph</p>
+                  </div>
+                  <div id="graph-scroll" class="graph-scroll" style="display:none">
+                    <svg id="commit-graph"></svg>
+                  </div>
+                </div>
+              </div>
+
+            </div><!-- /.sb-right-col -->
+          </div><!-- /.sb-body -->
+
         </div>
       </section>
 

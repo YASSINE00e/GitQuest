@@ -848,6 +848,269 @@ body {
 }
 
 /* ════════════════════════════════════════════════════
+   SANDBOX  —  terminal left · panels right (stacked)
+════════════════════════════════════════════════════ */
+.sb-outer {
+  padding: 1.25rem 1.4rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: .95rem;
+  height: calc(100vh - 56px);
+  overflow: hidden;
+}
+
+.sb-toprow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+/* ── Main 2-column body ── */
+.sb-body {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: .9rem;
+  flex: 1;
+  min-height: 0;          /* critical — lets children scroll inside */
+  overflow: hidden;
+}
+
+@media (max-width: 860px) {
+  .sb-body { grid-template-columns: 1fr; }
+}
+
+/* ── LEFT: Terminal column ── */
+.sb-terminal-col {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sb-term-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Terminal output fills remaining space */
+.sb-term-out {
+  flex: 1;
+  min-height: 0;
+  max-height: none !important;  /* override the generic max-height */
+  overflow-y: auto;
+}
+
+/* ── RIGHT: Stacked panels column ── */
+.sb-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Working Directory — fixed 30% of right column */
+.sb-tree-fixed {
+  flex: 0 0 30%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Commit Graph — fixed 60% of right column (remaining ~10% is gaps) */
+.sb-graph-fixed {
+  flex: 0 0 calc(70% - .75rem);
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tree body fills its panel */
+.sb-tree-fixed .sp-tree-body {
+  flex: 1;
+  min-height: 0;
+  max-height: none !important;
+  overflow-y: auto;
+}
+
+/* Graph body fills its panel */
+.sb-graph-fixed .sp-graph-body {
+  flex: 1;
+  min-height: 0;
+  max-height: none !important;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Panel cards */
+.sb-panel {
+  border-radius: var(--r2);
+  overflow: hidden;
+  border: 1px solid;
+}
+.sb-graph-panel {
+  background: #080810;
+  border-color: rgba(255,255,255,.07);
+  box-shadow: 0 4px 24px rgba(0,0,0,.5);
+}
+.sb-tree-panel {
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Panel header bars */
+.sp-bar {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .48rem .9rem;
+  border-bottom: 1px solid;
+}
+.sp-bar-dark {
+  background: #0d0d1a;
+  border-color: rgba(255,255,255,.055);
+}
+.sp-bar-themed {
+  background: var(--bg1);
+  border-color: var(--border);
+  color: var(--text-3);
+}
+.sp-mac-dot { width: 10px; height: 10px; border-radius: 50%; }
+.sp-mac-r { background: #ff5f57; }
+.sp-mac-y { background: #febc2e; }
+.sp-mac-g { background: #28c840; }
+.sp-bar-title {
+  font-family: var(--f-mono); font-size: .67rem;
+  color: rgba(255,255,255,.2);
+  flex: 1; letter-spacing: .04em; text-align: center;
+}
+.sp-bar-title-themed { color: var(--text-3); text-align: left; font-size: .68rem; }
+.sp-head-label {
+  font-family: var(--f-mono); font-size: .66rem;
+  color: #818cf8; font-weight: 600;
+}
+.sp-git-badge {
+  font-family: var(--f-mono); font-size: .6rem;
+  background: rgba(99,102,241,.1); border: 1px solid rgba(99,102,241,.25);
+  color: var(--accent); padding: .06rem .35rem; border-radius: 3px;
+}
+
+/* ── Commit Graph ── */
+.sp-graph-body {
+  min-height: 200px; max-height: 300px;
+  overflow-y: auto; overflow-x: hidden;
+}
+.sp-graph-body::-webkit-scrollbar { width: 3px; }
+.sp-graph-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); }
+
+.graph-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: .65rem; padding: 2rem 1.5rem; min-height: 160px;
+  font-family: var(--f-mono); font-size: .72rem;
+  color: rgba(255,255,255,.18); text-align: center; line-height: 1.6;
+}
+.graph-empty code {
+  background: rgba(255,255,255,.07); padding: .05rem .35rem;
+  border-radius: 3px; color: rgba(140,140,220,.55); font-size: .7rem;
+}
+.graph-scroll { padding: .8rem .6rem .8rem .4rem; overflow-x: auto; }
+#commit-graph { display: block; }
+
+/* ── File Tree ── */
+.sp-tree-body {
+  min-height: 120px; max-height: 300px;
+  overflow-y: auto; padding: .4rem 0;
+}
+.sp-tree-body::-webkit-scrollbar { width: 3px; }
+.sp-tree-body::-webkit-scrollbar-thumb { background: var(--border1); }
+
+.file-tree { font-family: var(--f-mono); }
+.ft-empty {
+  padding: 1rem 1.1rem; color: var(--text-3); font-size: .72rem;
+  line-height: 1.6;
+}
+.ft-empty code {
+  background: var(--bg2); padding: .04rem .3rem; border-radius: 3px;
+  color: var(--accent); font-size: .69rem;
+}
+.ft-root {
+  display: flex; align-items: center; gap: .45rem;
+  padding: .35rem 1rem .3rem;
+  font-size: .72rem; font-weight: 600; color: var(--text-2);
+  border-bottom: 1px solid var(--border); margin-bottom: .2rem;
+}
+.ft-row {
+  display: flex; align-items: center; gap: .4rem;
+  padding: .3rem .9rem; font-size: .74rem;
+  cursor: default; transition: background .1s;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ft-row:hover { background: var(--surface1); }
+.ft-icon { font-size: .8rem; flex-shrink: 0; opacity: .75; }
+.ft-fname { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; }
+.ft-fname.is-dir  { color: var(--accent); }
+.ft-fname.is-staged { color: var(--green); }
+.ft-fname.is-committed { color: var(--text-2); opacity: .7; }
+.ft-staged-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--green); flex-shrink: 0; margin-left: auto;
+}
+
+.sb-term-out { min-height: 200px; max-height: 320px; }
+
+/* ════════════════════════════════════════════════════
+   AUTOCOMPLETE
+════════════════════════════════════════════════════ */
+.ac-row { position: relative; }
+
+.ac-box {
+  position: absolute;
+  bottom: calc(100% + 3px); left: 0; right: 0;
+  background: #14141f;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: var(--r);
+  box-shadow: 0 -8px 32px rgba(0,0,0,.6);
+  z-index: 200;
+  max-height: 240px; overflow-y: auto;
+  display: none;
+}
+.ac-box::-webkit-scrollbar { width: 3px; }
+.ac-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); }
+
+.ac-item {
+  display: flex; align-items: baseline; gap: .7rem;
+  padding: .52rem .9rem;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  transition: background .08s;
+}
+.ac-item:last-child { border-bottom: none; }
+.ac-item:hover, .ac-item.ac-sel { background: rgba(99,102,241,.18); }
+
+.ac-cmd {
+  font-family: var(--f-mono); font-size: .78rem;
+  color: #93c5fd; flex-shrink: 0; white-space: nowrap;
+}
+.ac-desc {
+  font-family: var(--f-body); font-size: .71rem;
+  color: rgba(160,160,200,.45); flex: 1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ac-tab-hint {
+  font-family: var(--f-mono); font-size: .58rem;
+  color: rgba(255,255,255,.16);
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.09);
+  padding: .08rem .3rem; border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* ════════════════════════════════════════════════════
    TOAST
 ════════════════════════════════════════════════════ */
 .toast {

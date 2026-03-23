@@ -424,6 +424,9 @@ const Sandbox = (() => {
     '.gitignore':   'node_modules/\n.DS_Store\n*.log\n',
   };
 
+  // Explicitly created directories (separate from implicit dirs in file paths)
+  const dirs = new Set(['src']);
+
   const git = {
     initialized: false,
     branches: { main: [] },
@@ -434,9 +437,14 @@ const Sandbox = (() => {
     remotes: { origin: 'https://github.com/workshop/repo.git' },
     HEAD: null,
     commitCount: 0,
+    // ── commit graph tracking ──
+    log: [],                    // [{id, msg, branch, parentId, mergeParentId, ts}]
+    branchLanes: { main: 0 },   // branch → x-lane index for graph
+    branchHeads: {},            // branch → latest commit SHA
+    nextLane: 1,
   };
 
-  const cwd = '~/repo';
+  let cwd = '~/repo';
 
   const sha = () => Math.random().toString(16).slice(2, 10);
   const ts  = () => new Date().toLocaleString('en-US', {
@@ -445,24 +453,93 @@ const Sandbox = (() => {
   });
   const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-  /* Shell command handlers */
+  function resolvePath(target, base) {
+    // Resolve a target path relative to the current working directory
+    if (!target || target === '.') return base;
+    if (target === '..') {
+      const parts = base.replace('~/', '').split('/').filter(Boolean);
+      if (parts.length <= 1) return '~/repo';
+      parts.pop();
+      return '~/' + parts.join('/');
+    }
+    if (target.startsWith('~/')) return target;
+    if (target.startsWith('/'))  return '~' + target;
+    // relative path
+    return base === '~/repo' ? `~/repo/${target}` : `${base}/${target}`;
+  }
+
+  function cwdRelative() {
+    // Return cwd relative to ~/repo for fs lookups
+    return cwd === '~/repo' ? '' : cwd.replace('~/repo/', '');
+  }
+
+  function runCd(parts) {
+    const target = parts[1];
+    if (!target || target === '~' || target === '~/repo') {
+      cwd = '~/repo';
+      return '';
+    }
+    const resolved = resolvePath(target, cwd);
+    // Check the resolved path is a known directory
+    const rel = resolved.replace('~/repo', '').replace(/^\//, '');
+    if (rel === '') { cwd = '~/repo'; return ''; }
+    const isDirKnown = [...dirs].some(d => d === rel || d.startsWith(rel + '/'))
+      || Object.keys(fs).some(f => f.startsWith(rel + '/'));
+    if (!isDirKnown) {
+      return `<span class="t-err">cd: no such file or directory: ${esc(target)}</span>`;
+    }
+    cwd = resolved;
+    return '';
+  }
+
+  /* ── Shell command handlers ── */
+
   function runLs(parts) {
-    const verbose = parts.some(p => p.includes('l') && p.startsWith('-'));
-    const keys = Object.keys(fs);
-    const top = new Set(keys.map(k => k.split('/')[0]));
-    const entries = [...top].sort();
+    const verbose = parts.some(p => p.startsWith('-') && p.includes('l'));
+    const showAll = parts.some(p => p.startsWith('-') && p.includes('a'));
+    const targetDir = parts.find(p => !p.startsWith('-') && p !== 'ls');
+
+    // Gather file and dir entries at this level
+    let fileEntries, dirEntries;
+    if (targetDir) {
+      const prefix = targetDir.replace(/\/$/, '') + '/';
+      fileEntries = Object.keys(fs)
+        .filter(f => f.startsWith(prefix))
+        .map(f => f.slice(prefix.length).split('/')[0]);
+      dirEntries = [...dirs]
+        .filter(d => d.startsWith(prefix))
+        .map(d => d.slice(prefix.length).split('/')[0]);
+    } else {
+      fileEntries = Object.keys(fs).map(f => f.split('/')[0]);
+      dirEntries = [...dirs].map(d => d.split('/')[0]);
+    }
+
+    // Deduplicate and also count nested dirs as dirs
+    const allDirSet = new Set([
+      ...dirEntries,
+      ...Object.keys(fs).map(f => f.split('/')[0]).filter(p => Object.keys(fs).some(k => k.startsWith(p+'/')))
+    ]);
+    const allSet = new Set([...fileEntries, ...dirEntries]);
+    const sorted = [...allSet].filter(e => showAll || !e.startsWith('.')).sort();
+
     if (verbose) {
-      const lines = [`total ${entries.length * 4}`];
-      if (git.initialized) lines.push(`drwxr-xr-x  <span class="t-dim">.git/</span>`);
-      entries.forEach(e => {
-        const isDir = keys.some(k => k.startsWith(e+'/'));
-        lines.push(`-rw-r--r--  ${isDir ? `<span class="t-info">${e}/</span>` : esc(e)}`);
+      const lines = [`total ${sorted.length * 4}`];
+      if (git.initialized && !targetDir) lines.push(`drwxr-xr-x  <span class="t-dim">.git/</span>`);
+      sorted.forEach(e => {
+        const isDir = allDirSet.has(e);
+        lines.push(isDir
+          ? `-rw-r--r--  <span class="t-info">${esc(e)}/</span>`
+          : `-rw-r--r--  ${esc(e)}`);
       });
       return lines.join('\n');
     }
-    return entries.map(e => keys.some(k=>k.startsWith(e+'/'))
-      ? `<span class="t-info">${e}/</span>` : esc(e)
-    ).join('  ');
+
+    const items = [];
+    if (git.initialized && !targetDir) items.push(`<span class="t-dim">.git/</span>`);
+    sorted.forEach(e => {
+      items.push(allDirSet.has(e) ? `<span class="t-info">${esc(e)}/</span>` : esc(e));
+    });
+    return items.join('  ') || '<span class="t-dim">(empty directory)</span>';
   }
 
   function runCat(parts) {
@@ -473,9 +550,51 @@ const Sandbox = (() => {
 
   function runEcho(parts, raw) {
     const m = raw.match(/^echo\s+(.*?)\s*>\s*(\S+)$/);
-    if (m) { fs[m[2]] = m[1].replace(/^["']|["']$/g,'') + '\n'; return ''; }
+    if (m) {
+      const content = m[1].replace(/^["']|["']$/g,'') + '\n';
+      const path = m[2];
+      fs[path] = content;
+      // auto-create parent dir entry if needed
+      const pathParts = path.split('/');
+      if (pathParts.length > 1) dirs.add(pathParts.slice(0,-1).join('/'));
+      return '';
+    }
     return esc(parts.slice(1).join(' ').replace(/^["']|["']$/g,''));
   }
+
+  function runMkdir(parts) {
+    const pFlag = parts.includes('-p');
+    const target = parts.find(p => !p.startsWith('-') && p !== 'mkdir');
+    if (!target) return `<span class="t-err">mkdir: missing operand</span>`;
+    if (pFlag) {
+      // create all intermediate directories
+      const segs = target.split('/');
+      let path = '';
+      segs.forEach(s => { path = path ? `${path}/${s}` : s; dirs.add(path); });
+    } else {
+      if (dirs.has(target)) return `<span class="t-err">mkdir: cannot create directory '${esc(target)}': File exists</span>`;
+      dirs.add(target);
+    }
+    return '';
+  }
+
+  function runRm(parts) {
+    const recursive = parts.some(p => p.startsWith('-') && (p.includes('r') || p.includes('R')));
+    const target = parts.find(p => !p.startsWith('-') && p !== 'rm');
+    if (!target) return `<span class="t-err">rm: missing operand</span>`;
+    if (recursive) {
+      const prefix = target.replace(/\/$/, '');
+      let removed = 0;
+      Object.keys(fs).forEach(f => { if (f === prefix || f.startsWith(prefix+'/')) { delete fs[f]; git.staged.delete(f); removed++; } });
+      [...dirs].forEach(d => { if (d === prefix || d.startsWith(prefix+'/')) dirs.delete(d); });
+      return removed === 0 ? `<span class="t-err">rm: cannot remove '${esc(target)}': No such file or directory</span>` : '';
+    }
+    if (!fs[target]) return `<span class="t-err">rm: cannot remove '${esc(target)}': No such file or directory</span>`;
+    delete fs[target];
+    git.staged.delete(target);
+    return '';
+  }
+
 
   /* Git handlers */
   function needsInit() {
@@ -545,12 +664,16 @@ const Sandbox = (() => {
     const mi = args.indexOf('-m');
     let msg = mi !== -1 && args[mi+1] ? args[mi+1].replace(/^["']|["']$/g,'') : 'Commit';
     const id = sha();
+    const parentId = git.HEAD;        // snapshot current HEAD before advancing
     const files = [...git.staged];
     git.staged.clear();
     git.commitCount++;
     if (!git.branches[git.currentBranch]) git.branches[git.currentBranch] = [];
     git.branches[git.currentBranch].push({ id, msg, files, ts: ts(), author: Storage.getPlayer()||'user' });
     git.HEAD = id;
+    // ── graph tracking ──
+    git.log.push({ id, msg, branch: git.currentBranch, parentId, mergeParentId: null, ts: ts() });
+    git.branchHeads[git.currentBranch] = id;
     return `[${git.currentBranch} <span class="t-sha">${id}</span>] ${esc(msg)}\n ${files.length} file${files.length!==1?'s':''} changed`;
   }
 
@@ -609,6 +732,8 @@ const Sandbox = (() => {
       if (!n) return `<span class="t-err">fatal: branch name required</span>`;
       if (git.branches[n]) return `<span class="t-err">fatal: A branch named '${esc(n)}' already exists.</span>`;
       git.branches[n] = [...(git.branches[git.currentBranch]||[])];
+      if (git.branchLanes[n] === undefined) { git.branchLanes[n] = git.nextLane++; }
+      git.branchHeads[n] = git.HEAD;
       git.currentBranch = n;
       return `Switched to a new branch '<span class="t-br">${esc(n)}</span>'`;
     }
@@ -616,6 +741,7 @@ const Sandbox = (() => {
     if (!n) return `<span class="t-err">error: pathspec required</span>`;
     if (!git.branches[n]) return `<span class="t-err">error: pathspec '${esc(n)}' did not match any branch</span>`;
     git.currentBranch = n;
+    git.HEAD = git.branchHeads[n] || git.HEAD;
     return `Switched to branch '<span class="t-br">${esc(n)}</span>'`;
   }
 
@@ -623,13 +749,17 @@ const Sandbox = (() => {
     if (!git.initialized) return needsInit();
     if (args[0]==='-c'||args[0]==='--create') {
       const n = args[1];
+      if (!n) return `<span class="t-err">fatal: branch name required</span>`;
       git.branches[n] = [...(git.branches[git.currentBranch]||[])];
+      if (git.branchLanes[n] === undefined) { git.branchLanes[n] = git.nextLane++; }
+      git.branchHeads[n] = git.HEAD;
       git.currentBranch = n;
       return `Switched to a new branch '<span class="t-br">${esc(n)}</span>'`;
     }
     const n = args[0];
     if (!git.branches[n]) return `<span class="t-err">fatal: invalid reference: ${esc(n)}</span>`;
     git.currentBranch = n;
+    git.HEAD = git.branchHeads[n] || git.HEAD;
     return `Switched to branch '<span class="t-br">${esc(n)}</span>'`;
   }
 
@@ -643,7 +773,15 @@ const Sandbox = (() => {
     const newC = incoming.filter(c => !current.find(e => e.id===c.id));
     git.branches[git.currentBranch] = [...current, ...newC];
     if (!newC.length) return 'Already up to date.';
-    return `Merge made by the 'ort' strategy.\n ${newC.length} commit${newC.length!==1?'s':''} merged\n Merge commit: <span class="t-sha">${sha()}</span>`;
+    // ── create a merge commit in the graph log ──
+    const mergeId = sha();
+    const parentId = git.HEAD;
+    const mergeParentId = git.branchHeads[n] || null;
+    git.log.push({ id: mergeId, msg: `Merge branch '${n}'`, branch: git.currentBranch, parentId, mergeParentId, ts: ts() });
+    git.branches[git.currentBranch].push({ id: mergeId, msg: `Merge branch '${n}'`, files:[], ts: ts(), author: Storage.getPlayer()||'user' });
+    git.HEAD = mergeId;
+    git.branchHeads[git.currentBranch] = mergeId;
+    return `Merge made by the 'ort' strategy.\n ${newC.length} commit${newC.length!==1?'s':''} merged\n Merge commit: <span class="t-sha">${mergeId}</span>`;
   }
 
   function gitPush(args) {
@@ -858,10 +996,19 @@ const Sandbox = (() => {
     const cmd = parts[0];
     if (cmd==='clear')  return '__CLEAR__';
     if (cmd==='pwd')    return cwd;
+    if (cmd==='cd')     return runCd(parts);
     if (cmd==='ls')     return runLs(parts);
     if (cmd==='cat')    return runCat(parts);
-    if (cmd==='touch')  { if(parts[1])fs[parts[1]]=''; return ''; }
-    if (cmd==='mkdir')  return '';
+    if (cmd==='touch') {
+      if (!parts[1]) return `<span class="t-err">touch: missing file operand</span>`;
+      const p = parts[1];
+      if (!fs[p]) fs[p] = '';
+      const segs = p.split('/');
+      if (segs.length > 1) dirs.add(segs.slice(0,-1).join('/'));
+      return '';
+    }
+    if (cmd==='mkdir')  return runMkdir(parts);
+    if (cmd==='rm')     return runRm(parts);
     if (cmd==='echo')   return runEcho(parts, t);
     if (cmd==='git')    return runGit(parts.slice(1));
     return `<span class="t-err">bash: ${esc(cmd)}: command not found</span>`;
@@ -869,7 +1016,22 @@ const Sandbox = (() => {
 
   function getPrompt() { return `user@gitquest:<span class="t-info">${cwd}</span>$`; }
 
-  return { run, getPrompt };
+  function getState() {
+    return {
+      initialized: git.initialized,
+      branches: git.branches,
+      currentBranch: git.currentBranch,
+      HEAD: git.HEAD,
+      staged: git.staged,
+      log: git.log,
+      branchLanes: git.branchLanes,
+      branchHeads: git.branchHeads,
+      fs,
+      dirs,
+    };
+  }
+
+  return { run, getPrompt, getState };
 })();
 
 /* ══════════════════════════════════════════════
@@ -1045,9 +1207,13 @@ function selectExercise(id) {
 }
 
 function initExTerminal() {
+  const inEl  = document.getElementById('ex-input');
+  const acBox = document.getElementById('ex-ac');
+  attachAutocomplete(inEl, acBox);
+
   exTerm = makeTerminal(
     document.getElementById('ex-out'),
-    document.getElementById('ex-input'),
+    inEl,
     document.getElementById('ex-ps1'),
     (cmd) => {
       if (activeId == null || progress.completed.includes(activeId)) return;
@@ -1696,17 +1862,437 @@ document.getElementById('badge-close').addEventListener('click', () => {
   });
 })();
 
-/* Sandbox terminal */
+/* ══════════════════════════════════════════════
+   COMMIT GRAPH RENDERER
+   Draws an SVG DAG of all commits across branches.
+   Layout: time flows top→bottom, branches are x-columns.
+══════════════════════════════════════════════ */
+const GRAPH_COLORS = [
+  '#818cf8',  // main   — indigo
+  '#34d399',  // lane 1 — emerald
+  '#f472b6',  // lane 2 — pink
+  '#fbbf24',  // lane 3 — amber
+  '#60a5fa',  // lane 4 — blue
+  '#a78bfa',  // lane 5 — violet
+  '#fb923c',  // lane 6 — orange
+];
+
+function renderGraph() {
+  const state     = Sandbox.getState();
+  const emptyEl   = document.getElementById('graph-empty');
+  const scrollEl  = document.getElementById('graph-scroll');
+  const svg       = document.getElementById('commit-graph');
+  const headLabel = document.getElementById('graph-head-label');
+
+  if (!state.initialized || !state.log.length) {
+    emptyEl.style.display  = '';
+    scrollEl.style.display = 'none';
+    headLabel.textContent  = '';
+    return;
+  }
+
+  emptyEl.style.display  = 'none';
+  scrollEl.style.display = '';
+  headLabel.textContent  = `HEAD → ${state.currentBranch}`;
+
+  /* ── layout ── */
+  const ROW_H   = 54;
+  const COL_W   = 38;
+  const R       = 8;
+  const PAD_T   = 22;
+  const LABEL_W = 170;   // right zone: SHA + message
+
+  const log       = state.log;
+  const lanes     = state.branchLanes;
+  const heads     = state.branchHeads;
+  const laneCount = Math.max(...Object.values(lanes)) + 1;
+
+  /* Available container width */
+  const containerW  = scrollEl.parentElement.offsetWidth || 300;
+
+  /* Left zone holds the node columns; right zone holds text labels.
+     We center the node columns inside the left zone. */
+  const NODE_ZONE_W  = Math.max(containerW - LABEL_W, laneCount * COL_W + 40);
+  const nodesBlockW  = laneCount * COL_W;
+  const PAD_L        = Math.floor((NODE_ZONE_W - nodesBlockW) / 2);
+
+  const LABEL_X = NODE_ZONE_W + 10;
+  const W = NODE_ZONE_W + LABEL_W;
+  const H = PAD_T * 2 + log.length * ROW_H;
+
+  svg.setAttribute('width',  Math.max(W, containerW));
+  svg.setAttribute('height', H);
+  svg.setAttribute('viewBox', `0 0 ${Math.max(W, containerW)} ${H}`);
+
+  /* SHA → position — nodes live in the centered left zone */
+  const pos = {};
+  log.forEach((c, i) => {
+    const lane = lanes[c.branch] ?? 0;
+    pos[c.id] = {
+      x:     PAD_L + lane * COL_W + COL_W / 2,
+      y:     PAD_T + i * ROW_H + ROW_H / 2,
+      color: GRAPH_COLORS[lane % GRAPH_COLORS.length],
+      lane,
+    };
+  });
+
+  let svgHTML = '';
+
+  /* ── 1. Edges ── */
+  log.forEach(c => {
+    const p = pos[c.id];
+    if (!p) return;
+
+    if (c.parentId && pos[c.parentId]) {
+      const par = pos[c.parentId];
+      if (par.lane === p.lane) {
+        svgHTML += `<line x1="${p.x}" y1="${p.y}" x2="${par.x}" y2="${par.y}"
+          stroke="${p.color}" stroke-width="2" opacity=".5"/>`;
+      } else {
+        svgHTML += `<path d="M${p.x},${p.y} C${p.x},${par.y} ${par.x},${p.y} ${par.x},${par.y}"
+          stroke="${p.color}" stroke-width="2" fill="none" opacity=".5"/>`;
+      }
+    }
+
+    if (c.mergeParentId && pos[c.mergeParentId]) {
+      const mp = pos[c.mergeParentId];
+      svgHTML += `<path d="M${p.x},${p.y} C${p.x},${mp.y} ${mp.x},${p.y} ${mp.x},${mp.y}"
+        stroke="${mp.color}" stroke-width="2" fill="none" opacity=".38" stroke-dasharray="4 3"/>`;
+    }
+  });
+
+  /* ── 2. Nodes + labels ── */
+  log.forEach(c => {
+    const p = pos[c.id];
+    if (!p) return;
+
+    const isHEAD = c.id === state.HEAD;
+
+    /* glow ring on HEAD */
+    if (isHEAD) {
+      svgHTML += `<circle cx="${p.x}" cy="${p.y}" r="${R + 4}"
+        fill="none" stroke="${p.color}" stroke-width="1.5" opacity=".28"/>`;
+    }
+
+    /* node */
+    svgHTML += `<circle cx="${p.x}" cy="${p.y}" r="${R}"
+      fill="${isHEAD ? p.color : '#0d0d1a'}"
+      stroke="${p.color}" stroke-width="2"/>`;
+
+    /* labels to the right of the node zone */
+    const lx = LABEL_X;
+    svgHTML += `<text x="${lx}" y="${p.y - 4}"
+      font-family="JetBrains Mono, monospace" font-size="10"
+      fill="${p.color}" opacity=".8">${c.id.slice(0, 7)}</text>`;
+
+    const msg = c.msg.length > 24 ? c.msg.slice(0, 22) + '…' : c.msg;
+    svgHTML += `<text x="${lx}" y="${p.y + 9}"
+      font-family="Plus Jakarta Sans, sans-serif" font-size="10.5"
+      fill="rgba(200,202,228,0.7)">${escHtml(msg)}</text>`;
+
+    /* branch badges — float to the left of the node */
+    const branchesHere = Object.entries(heads)
+      .filter(([, id]) => id === c.id)
+      .map(([b]) => b);
+
+    let bx = p.x - R - 4;
+    branchesHere.reverse().forEach(b => {
+      const isActive = b === state.currentBranch;
+      const col  = GRAPH_COLORS[(lanes[b] ?? 0) % GRAPH_COLORS.length];
+      const label = isActive ? `● ${b}` : b;
+      const bw    = Math.max(label.length * 6.2 + 12, 36);
+      bx -= bw + 4;
+      svgHTML += `<rect x="${bx}" y="${p.y - 9}" width="${bw}" height="18" rx="4"
+        fill="${isActive ? col : 'transparent'}"
+        stroke="${col}" stroke-width="1.2" opacity="${isActive ? 1 : 0.6}"/>`;
+      svgHTML += `<text x="${bx + bw / 2}" y="${p.y + 5}" text-anchor="middle"
+        font-family="JetBrains Mono, monospace" font-size="9.5"
+        fill="${isActive ? '#000' : col}"
+        font-weight="${isActive ? '700' : '400'}">${label}</text>`;
+    });
+  });
+
+  svg.innerHTML = svgHTML;
+}
+
+/* ══════════════════════════════════════════════
+   FILE TREE RENDERER
+   Shows all files/dirs in the virtual filesystem
+   with staged status indicators.
+══════════════════════════════════════════════ */
+function renderFileTree() {
+  const state   = Sandbox.getState();
+  const treeEl  = document.getElementById('file-tree');
+  const gitBadge= document.getElementById('tree-git-label');
+
+  if (gitBadge) gitBadge.style.display = state.initialized ? '' : 'none';
+
+  const allFiles = Object.keys(state.fs).sort();
+  const allDirs  = [...state.dirs].sort();
+
+  if (!allFiles.length && !allDirs.length) {
+    treeEl.innerHTML = `<div class="ft-empty">No files yet — try <code>touch README.txt</code></div>`;
+    return;
+  }
+
+  /* Build a tree structure */
+  const tree = {};  // path → { type:'dir'|'file', children, name }
+
+  allDirs.forEach(d => {
+    tree[d] = { type:'dir', name: d.split('/').pop(), children: [], fullPath: d };
+  });
+  allFiles.forEach(f => {
+    tree[f] = { type:'file', name: f.split('/').pop(), fullPath: f };
+  });
+
+  /* Collect top-level entries */
+  const topLevel = [];
+  const isChild  = new Set();
+
+  // Files inside dirs
+  allFiles.forEach(f => {
+    const parts = f.split('/');
+    if (parts.length > 1) {
+      const parent = parts.slice(0,-1).join('/');
+      if (tree[parent]) { tree[parent].children = tree[parent].children || []; tree[parent].children.push(f); isChild.add(f); }
+    }
+  });
+
+  // Dirs inside dirs
+  allDirs.forEach(d => {
+    const parts = d.split('/');
+    if (parts.length > 1) {
+      const parent = parts.slice(0,-1).join('/');
+      if (tree[parent]) { tree[parent].children.push(d); isChild.add(d); }
+    }
+  });
+
+  [...allDirs, ...allFiles].forEach(k => { if (!isChild.has(k)) topLevel.push(k); });
+  topLevel.sort();
+
+  function rowHTML(key, depth) {
+    const node = tree[key];
+    if (!node) return '';
+    const indent = depth * 14;
+    const isDir = node.type === 'dir';
+    const isStaged = !isDir && state.staged.has(key);
+    const icon = isDir ? '📁' : (key.endsWith('.js') ? '📄' : key.endsWith('.txt') ? '📝' : key.startsWith('.') ? '⚙️' : '📄');
+    let cls = 'ft-fname';
+    if (isDir) cls += ' is-dir';
+    else if (isStaged) cls += ' is-staged';
+
+    let html = `<div class="ft-row" style="padding-left:${14 + indent}px">
+      <span class="ft-icon">${icon}</span>
+      <span class="${cls}">${escHtml(node.name)}${isDir?'/':''}</span>
+      ${isStaged ? '<span class="ft-staged-dot" title="Staged"></span>' : ''}
+    </div>`;
+
+    if (isDir && node.children?.length) {
+      node.children.sort().forEach(child => { html += rowHTML(child, depth + 1); });
+    }
+    return html;
+  }
+
+  let html = `<div class="ft-root">
+    <span>📂</span>
+    <span>~/repo${state.initialized ? ' <span class="sp-git-badge" style="display:inline-block;margin-left:4px">.git</span>' : ''}</span>
+  </div>`;
+  topLevel.forEach(k => { html += rowHTML(k, 0); });
+  treeEl.innerHTML = html;
+}
+
+/* ══════════════════════════════════════════════
+   AUTOCOMPLETE ENGINE
+   Attaches to any terminal input + ac-box pair.
+   Suggests git/shell commands and subcommands.
+══════════════════════════════════════════════ */
+const AC_COMMANDS = [
+  // Shell
+  { cmd: 'ls',                desc: 'List directory contents' },
+  { cmd: 'ls -la',            desc: 'Detailed file listing' },
+  { cmd: 'pwd',               desc: 'Print working directory' },
+  { cmd: 'cd ',               desc: 'Change directory' },
+  { cmd: 'cd ..',             desc: 'Go up one directory' },
+  { cmd: 'cd ',               desc: 'Change directory' },
+  { cmd: 'cd ..',             desc: 'Go up one directory' },
+  { cmd: 'cd ~/repo',         desc: 'Return to repo root' },
+  { cmd: 'cat ',              desc: 'Print file contents' },
+  { cmd: 'touch ',            desc: 'Create a new file' },
+  { cmd: 'mkdir ',            desc: 'Create a directory' },
+  { cmd: 'mkdir -p ',         desc: 'Create nested directories' },
+  { cmd: 'rm ',               desc: 'Remove a file' },
+  { cmd: 'rm -rf ',           desc: 'Force-remove recursively' },
+  { cmd: 'echo "',            desc: 'Print text or redirect to file' },
+  { cmd: 'clear',             desc: 'Clear the terminal' },
+  // Git basics
+  { cmd: 'git init',          desc: 'Initialize a repository' },
+  { cmd: 'git status',        desc: 'Show working tree status' },
+  { cmd: 'git status -s',     desc: 'Short status format' },
+  { cmd: 'git add .',         desc: 'Stage all changes' },
+  { cmd: 'git add ',          desc: 'Stage a specific file' },
+  { cmd: 'git add -A',        desc: 'Stage all tracked/untracked' },
+  { cmd: 'git commit -m "',   desc: 'Commit with a message' },
+  { cmd: 'git commit --amend',desc: 'Amend the last commit' },
+  { cmd: 'git log',           desc: 'Show commit history' },
+  { cmd: 'git log --oneline', desc: 'Compact one-line log' },
+  { cmd: 'git log --graph',   desc: 'Log with branch graph' },
+  { cmd: 'git log --oneline --graph --all', desc: 'Full graph all branches' },
+  { cmd: 'git diff',          desc: 'Show unstaged changes' },
+  { cmd: 'git diff --staged', desc: 'Show staged changes' },
+  // Branching
+  { cmd: 'git branch',        desc: 'List all branches' },
+  { cmd: 'git branch ',       desc: 'Create a new branch' },
+  { cmd: 'git branch -d ',    desc: 'Delete a merged branch' },
+  { cmd: 'git branch -D ',    desc: 'Force-delete a branch' },
+  { cmd: 'git checkout ',     desc: 'Switch to a branch' },
+  { cmd: 'git checkout -b ',  desc: 'Create and switch to branch' },
+  { cmd: 'git switch ',       desc: 'Switch to a branch' },
+  { cmd: 'git switch -c ',    desc: 'Create and switch to branch' },
+  { cmd: 'git merge ',        desc: 'Merge a branch into current' },
+  { cmd: 'git rebase ',       desc: 'Rebase current branch' },
+  { cmd: 'git rebase -i HEAD~', desc: 'Interactive rebase' },
+  // Remote
+  { cmd: 'git remote -v',     desc: 'Show remotes with URLs' },
+  { cmd: 'git remote add origin ', desc: 'Add a remote' },
+  { cmd: 'git push origin main', desc: 'Push to remote' },
+  { cmd: 'git push',          desc: 'Push to tracking remote' },
+  { cmd: 'git pull',          desc: 'Pull from tracking remote' },
+  { cmd: 'git pull origin main', desc: 'Pull from specific remote' },
+  { cmd: 'git fetch',         desc: 'Fetch without merging' },
+  { cmd: 'git clone ',        desc: 'Clone a repository' },
+  // Stash
+  { cmd: 'git stash',         desc: 'Save working changes' },
+  { cmd: 'git stash pop',     desc: 'Apply & remove latest stash' },
+  { cmd: 'git stash list',    desc: 'List stash entries' },
+  { cmd: 'git stash drop',    desc: 'Drop latest stash entry' },
+  // Undo
+  { cmd: 'git reset HEAD~1',  desc: 'Undo last commit (keep changes)' },
+  { cmd: 'git reset --hard HEAD', desc: 'Discard all changes' },
+  { cmd: 'git revert HEAD',   desc: 'Create revert commit' },
+  { cmd: 'git restore ',      desc: 'Discard working dir changes' },
+  { cmd: 'git restore --staged ', desc: 'Unstage a file' },
+  // Misc
+  { cmd: 'git show',          desc: 'Show latest commit' },
+  { cmd: 'git show HEAD',     desc: 'Show HEAD commit' },
+  { cmd: 'git tag ',          desc: 'Create a tag' },
+  { cmd: 'git tag -a ',       desc: 'Create annotated tag' },
+  { cmd: 'git reflog',        desc: 'Show HEAD history log' },
+  { cmd: 'git config --list', desc: 'List all config values' },
+  { cmd: 'git config --global user.name "', desc: 'Set global username' },
+  { cmd: 'git help',          desc: 'Show git help' },
+  { cmd: 'git version',       desc: 'Show git version' },
+];
+
+function attachAutocomplete(inputEl, acBoxEl, onAccept) {
+  let items = [];
+  let selIdx = -1;
+
+  function hide() { acBoxEl.style.display = 'none'; items = []; selIdx = -1; }
+
+  function show(matches) {
+    items = matches;
+    if (!items.length) { hide(); return; }
+    acBoxEl.innerHTML = items.map((m, i) => `
+      <div class="ac-item" data-idx="${i}">
+        <span class="ac-cmd">${escHtml(m.cmd)}</span>
+        <span class="ac-desc">${escHtml(m.desc)}</span>
+        ${i === 0 ? '<span class="ac-tab-hint">Tab</span>' : ''}
+      </div>`).join('');
+    acBoxEl.style.display = 'block';
+    selIdx = 0;
+    highlight();
+
+    acBoxEl.querySelectorAll('.ac-item').forEach(el => {
+      el.addEventListener('mousedown', e => {
+        e.preventDefault();
+        accept(+el.dataset.idx);
+      });
+    });
+  }
+
+  function highlight() {
+    acBoxEl.querySelectorAll('.ac-item').forEach((el, i) => {
+      el.classList.toggle('ac-sel', i === selIdx);
+    });
+  }
+
+  function accept(idx) {
+    if (idx < 0 || idx >= items.length) return;
+    inputEl.value = items[idx].cmd;
+    hide();
+    inputEl.focus();
+    if (onAccept) onAccept(items[idx].cmd);
+  }
+
+  function update() {
+    const val = inputEl.value;
+    if (!val.trim()) { hide(); return; }
+
+    const lower = val.toLowerCase();
+    const matches = AC_COMMANDS
+      .filter(m => m.cmd.toLowerCase().startsWith(lower) && m.cmd !== val)
+      .slice(0, 8);
+    show(matches);
+  }
+
+  inputEl.addEventListener('input', update);
+
+  inputEl.addEventListener('keydown', e => {
+    if (!items.length) return;
+    if (e.key === 'Tab' || (e.key === 'ArrowRight' && inputEl.selectionStart === inputEl.value.length)) {
+      if (items.length) { e.preventDefault(); accept(selIdx >= 0 ? selIdx : 0); }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault(); selIdx = Math.min(selIdx + 1, items.length - 1); highlight();
+    } else if (e.key === 'ArrowUp') {
+      // don't conflict with history — only when ac is open
+      if (items.length) { e.preventDefault(); selIdx = Math.max(selIdx - 1, 0); highlight(); }
+    } else if (e.key === 'Escape') {
+      hide();
+    } else if (e.key === 'Enter') {
+      hide();   // let terminal submit handle the rest
+    }
+  });
+
+  // Hide when clicking outside
+  document.addEventListener('click', e => {
+    if (!acBoxEl.contains(e.target) && e.target !== inputEl) hide();
+  });
+
+  return { hide };
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ══════════════════════════════════════════════
+   SANDBOX TERMINAL (with graph + tree + autocomplete)
+══════════════════════════════════════════════ */
 (function() {
-  const sb = makeTerminal(
-    document.getElementById('sb-out'),
-    document.getElementById('sb-in'),
-    document.getElementById('sb-ps1')
-  );
-  sb.print('<span class="t-info">GitQuest Sandbox — type any git or shell command.</span>');
-  sb.print('<span class="t-dim">Pre-loaded files: README.txt, src/app.js, src/utils.js, .gitignore</span>');
+  const outEl  = document.getElementById('sb-out');
+  const inEl   = document.getElementById('sb-in');
+  const ps1El  = document.getElementById('sb-ps1');
+  const acBox  = document.getElementById('sb-ac');
+
+  // Attach autocomplete
+  attachAutocomplete(inEl, acBox);
+
+  // Build terminal with graph/tree refresh on every command
+  const sb = makeTerminal(outEl, inEl, ps1El, () => {
+    renderGraph();
+    renderFileTree();
+  });
+
+  sb.print('<span class="t-info">GitQuest Sandbox  —  git + shell commands supported</span>');
+  sb.print('<span class="t-dim">Files: README.txt  src/app.js  src/utils.js  .gitignore</span>');
+  sb.print('<span class="t-dim">Try: touch notes.txt  |  mkdir lib  |  git init  |  git add .  |  git commit -m "first"</span>');
   sb.print('');
+
   document.getElementById('clear-sb').addEventListener('click', () => sb.clear());
+
+  // Render initial file tree
+  renderFileTree();
+  renderGraph();
 })();
 
 /* Nickname / launch flow */
