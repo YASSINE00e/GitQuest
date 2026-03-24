@@ -112,6 +112,11 @@ body { transition: background-color .25s var(--ease), color .2s var(--ease); }
   transition: background-color .25s var(--ease), border-color .2s var(--ease), box-shadow .2s var(--ease);
 }
 button, input { transition: background-color .15s, border-color .15s, color .12s, box-shadow .15s, transform .1s, opacity .12s; }
+button { touch-action: manipulation; cursor: pointer; }
+input  { touch-action: manipulation; }
+
+/* Prevent tap highlight on mobile */
+* { -webkit-tap-highlight-color: transparent; }
 
 html { font-size: 15px; }
 body {
@@ -1147,4 +1152,398 @@ body {
 .badge-sub {
   font-family: var(--f-mono); font-size: .77rem; color: var(--text-2);
   margin-bottom: 1.4rem; line-height: 1.7;
+}
+
+/* ════════════════════════════════════════════════════
+   RESPONSIVE SYSTEM
+   Breakpoints:
+     --mobile-sm  ≤ 480px   (small phones)
+     --mobile     ≤ 640px   (phones)
+     --tablet     ≤ 900px   (tablets / landscape phones)
+     --desktop-sm ≤ 1100px  (small laptops)
+════════════════════════════════════════════════════ */
+
+/* ────────────────────────────────────────────────────
+   TOPBAR — responsive
+──────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .topbar {
+    padding: 0 1rem;
+    gap: .6rem;
+    height: 52px;
+  }
+  .topbar-name { font-size: .88rem; }
+  .player-tag  { display: none; }
+}
+
+@media (max-width: 700px) {
+  .topbar { gap: .4rem; height: 48px; }
+
+  /* Compress tab nav — allow horizontal scroll */
+  .tab-nav {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    max-width: calc(100vw - 160px);
+    flex-shrink: 1;
+  }
+  .tab-nav::-webkit-scrollbar { display: none; }
+  .tab-btn { padding: .28rem .7rem; font-size: .73rem; }
+
+  /* XP badge compact */
+  .xp-badge { padding: .18rem .55rem; }
+  .xp-unit  { display: none; }
+
+  /* Hide reset, show only icon */
+  .btn-ghost { display: none; }
+  .theme-toggle { width: 44px; height: 24px; }
+  .toggle-knob { width: 16px; height: 16px; }
+  [data-theme="light"] .toggle-knob { transform: translateX(20px); }
+}
+
+@media (max-width: 480px) {
+  .topbar { padding: 0 .75rem; gap: .3rem; }
+  .topbar-brand { flex: 0 0 auto; }
+  .topbar-name  { display: none; }       /* icon only on tiny screens */
+  .tab-nav { max-width: calc(100vw - 110px); }
+  .tab-btn { padding: .25rem .55rem; font-size: .7rem; }
+}
+
+/* ────────────────────────────────────────────────────
+   MODAL — responsive
+──────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .modal { padding: 2rem 1.4rem 1.6rem; border-radius: var(--r2); }
+  .brand-title { font-size: 1.6rem; }
+  .modal-brand { margin-bottom: 1.5rem; }
+}
+
+/* ────────────────────────────────────────────────────
+   EXERCISES — responsive
+──────────────────────────────────────────────────── */
+
+/* ≤ 900px: sidebar becomes a horizontal strip at the top */
+@media (max-width: 900px) {
+  .app-main { min-height: auto; }
+
+  .ex-layout {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .ex-sidebar {
+    position: static;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: .75rem 0 .5rem;
+  }
+
+  /* Show sidebar as a horizontal scrollable chip row */
+  .sidebar-stat {
+    padding: 0 1rem .75rem;
+    margin-bottom: 0;
+  }
+
+  #ex-groups {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 0;
+    padding: 0 .5rem;
+  }
+  #ex-groups::-webkit-scrollbar { display: none; }
+
+  .diff-group { display: flex; flex-direction: column; }
+
+  /* Keep groups always open on mobile */
+  .diff-group:not(.open) .diff-items { display: flex; }
+
+  .diff-header { display: none; }  /* hide chevron group headers */
+
+  .diff-items {
+    display: flex;
+    flex-direction: row;
+    gap: .35rem;
+    padding: .4rem .5rem;
+    white-space: nowrap;
+  }
+
+  .ex-item {
+    flex-direction: column;
+    align-items: center;
+    gap: .15rem;
+    padding: .5rem .65rem;
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    border-radius: var(--r);
+    background: var(--surface);
+    min-width: 80px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .ex-item:hover  { background: var(--surface1); }
+  .ex-item.is-active {
+    background: var(--accent-dim);
+    border-bottom-color: var(--accent);
+    border-left-color: transparent;
+  }
+  .ex-item-num { width: auto; text-align: center; }
+  .ex-item-title {
+    font-size: .68rem;
+    white-space: normal;
+    text-align: center;
+    max-width: 70px;
+    line-height: 1.2;
+  }
+  .ex-item-pts { font-size: .6rem; }
+  .ex-item.is-done .ex-item-title::after { display: none; }
+  .ex-item.is-done { opacity: .45; }
+
+  .ex-main { padding: 1rem; gap: .85rem; }
+  .ex-card { padding: 1.2rem 1.3rem; min-height: auto; }
+  .ex-title { font-size: 1.05rem; }
+  .ex-desc { font-size: .84rem; }
+}
+
+@media (max-width: 480px) {
+  .ex-main { padding: .75rem; }
+  .ex-card { padding: 1rem 1.1rem; border-radius: var(--r); }
+  .ex-title { font-size: .98rem; }
+  .sidebar-stat { gap: .6rem; }
+}
+
+/* ────────────────────────────────────────────────────
+   TUTORIAL — responsive
+──────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .tut-layout {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .tut-sidebar {
+    position: static;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: .6rem 0;
+  }
+
+  .tut-sidebar-head { padding: 0 1rem .6rem; }
+
+  .tut-lesson-list {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: .3rem;
+    padding: .4rem .75rem;
+  }
+  .tut-lesson-list::-webkit-scrollbar { display: none; }
+
+  .tut-lesson-item {
+    flex-direction: column;
+    align-items: center;
+    gap: .2rem;
+    padding: .5rem .65rem;
+    min-width: 70px;
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    border-radius: var(--r);
+    background: var(--surface);
+    flex-shrink: 0;
+    text-align: center;
+  }
+  .tut-lesson-item.tl-active {
+    background: var(--accent-dim);
+    border-bottom-color: var(--accent);
+    border-left-color: transparent;
+  }
+  .tl-label {
+    font-size: .66rem;
+    white-space: normal;
+    max-width: 65px;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .tut-main { padding: 1.5rem 1.2rem 2.5rem; max-width: 100%; }
+  .tut-lesson-title { font-size: 1.4rem; }
+  .tut-lesson-lead { font-size: .88rem; }
+  .tut-body { font-size: .85rem; }
+  .tut-body h3 { font-size: .96rem; margin: 1.5rem 0 .5rem; }
+}
+
+@media (max-width: 640px) {
+  .tut-main { padding: 1.1rem .9rem 2rem; }
+  .tut-lesson-title { font-size: 1.2rem; }
+
+  .tut-term { grid-template-columns: 1fr; gap: .3rem; }
+  .tut-term-key { font-size: .7rem; }
+
+  .tut-nav { flex-wrap: wrap; gap: .6rem; }
+  .tut-nav-btn { flex: 1; justify-content: center; min-width: 120px; font-size: .76rem; }
+  .tut-read-badge { display: none; }
+
+  .stage-flow { gap: .3rem; }
+  .sf-box { min-width: 80px; padding: .65rem .7rem; }
+  .sf-arrow { font-size: .75rem; }
+  .sf-arrow-label { display: none; }
+}
+
+/* ────────────────────────────────────────────────────
+   SANDBOX — responsive
+──────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .sb-outer {
+    height: auto;
+    overflow: visible;
+    padding: 1rem;
+    gap: .85rem;
+  }
+
+  .sb-toprow { gap: .65rem; }
+  .sb-toprow .page-title { font-size: 1rem; }
+  .pill-row { gap: .3rem; }
+  .cpill { font-size: .64rem; }
+
+  /* Stack terminal on top, panels below */
+  .sb-body {
+    grid-template-columns: 1fr;
+    overflow: visible;
+    flex: none;
+    min-height: auto;
+  }
+
+  .sb-terminal-col { overflow: visible; min-height: auto; }
+
+  .sb-term-card {
+    height: auto;
+    min-height: auto;
+  }
+
+  .sb-term-out {
+    min-height: 220px !important;
+    max-height: 320px !important;
+    flex: none;
+  }
+
+  /* Right column: panels side by side on tablet */
+  .sb-right-col {
+    flex-direction: row;
+    overflow: visible;
+    min-height: auto;
+    gap: .75rem;
+  }
+
+  .sb-tree-fixed,
+  .sb-graph-fixed {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  .sb-tree-fixed .sp-tree-body,
+  .sb-graph-fixed .sp-graph-body {
+    max-height: 240px !important;
+    min-height: 120px;
+  }
+}
+
+@media (max-width: 600px) {
+  /* Stack panels vertically on phones */
+  .sb-right-col { flex-direction: column; }
+
+  .sb-tree-fixed,
+  .sb-graph-fixed {
+    flex: 0 0 auto;
+  }
+
+  .sb-tree-fixed .sp-tree-body  { max-height: 160px !important; }
+  .sb-graph-fixed .sp-graph-body { max-height: 220px !important; }
+}
+
+/* ────────────────────────────────────────────────────
+   CHEAT SHEET — responsive
+──────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .cs-wrap { padding: 1rem 1rem; }
+  .page-head { flex-direction: column; gap: .6rem; }
+  .cs-search { width: 100%; }
+  .cs-search-wrap { width: 100%; }
+  .cs-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: .7rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .cs-grid { grid-template-columns: 1fr; }
+  .cs-cmd { font-size: .7rem; }
+  .cs-desc { font-size: .72rem; }
+}
+
+/* ────────────────────────────────────────────────────
+   SANDBOX PANELS — shared responsive tweaks
+──────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .sp-graph-body {
+    min-height: 140px;
+    max-height: 240px;
+  }
+  .sp-tree-body {
+    min-height: 100px;
+    max-height: 200px;
+  }
+}
+
+/* ────────────────────────────────────────────────────
+   TERMINAL — universal responsive tweaks
+──────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .term-out { font-size: .76rem; padding: .7rem .8rem; }
+  .term-ps1 { font-size: .76rem; }
+  .term-in  { font-size: .76rem; }
+  .term-row { padding: .45rem .8rem; }
+  .term-bar { padding: .42rem .7rem; }
+  .tdot     { width: 9px; height: 9px; }
+  .term-bar-label { font-size: .6rem; }
+  .ac-box   { max-height: 180px; }
+  .ac-item  { padding: .42rem .75rem; }
+  .ac-cmd   { font-size: .72rem; }
+  .ac-desc  { font-size: .65rem; }
+}
+
+/* ────────────────────────────────────────────────────
+   TOAST — responsive
+──────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .toast {
+    white-space: normal;
+    text-align: center;
+    max-width: calc(100vw - 2rem);
+    bottom: 1rem;
+    font-size: .72rem;
+    padding: .55rem 1rem;
+  }
+}
+
+/* ────────────────────────────────────────────────────
+   GLOBAL SPACING — small screens
+──────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  html { font-size: 14px; }
+
+  .page-title { font-size: 1rem; }
+  .page-sub   { font-size: .78rem; }
+
+  .sandbox-wrap,
+  .cs-wrap { padding: .85rem .85rem; }
+
+  /* Tighten tutorial diagrams */
+  .tut-diagram { padding: .9rem; }
+  .tut-code pre { font-size: .73rem; padding: .75rem .85rem; }
+  .tut-callout  { padding: .75rem .85rem; font-size: .8rem; }
 }
