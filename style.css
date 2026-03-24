@@ -1547,3 +1547,196 @@ body {
   .tut-code pre { font-size: .73rem; padding: .75rem .85rem; }
   .tut-callout  { padding: .75rem .85rem; font-size: .8rem; }
 }
+
+/* ════════════════════════════════════════════════════
+   ABOUT PAGE
+════════════════════════════════════════════════════ */
+.about-wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 3rem 1.6rem 4rem;
+}
+
+/* ── Hero ── */
+.about-hero {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  margin-bottom: 2.4rem;
+}
+.about-hero-graphic {
+  flex-shrink: 0;
+  width: 72px; height: 72px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border1);
+  border-radius: var(--r2);
+  box-shadow: var(--shadow-md), 0 0 0 1px var(--accent-dim);
+}
+.about-title {
+  font-family: var(--f-head);
+  font-size: 2.2rem; font-weight: 800;
+  letter-spacing: -.05em; color: var(--text);
+  line-height: 1;
+  margin-bottom: .4rem;
+}
+.about-subtitle {
+  font-size: .95rem; color: var(--text-2); line-height: 1.6;
+  max-width: 520px;
+}
+
+/* ── Stats row ── */
+.about-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .85rem;
+  margin-bottom: 2.2rem;
+}
+@media (max-width: 640px) { .about-stats { grid-template-columns: repeat(2, 1fr); } }
+
+.about-stat {
+  display: flex; flex-direction: column; align-items: center;
+  gap: .2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r2);
+  padding: 1.1rem .8rem;
+  box-shadow: var(--shadow-sm);
+}
+.about-stat-num {
+  font-family: var(--f-head);
+  font-size: 1.65rem; font-weight: 800;
+  color: var(--accent); letter-spacing: -.04em;
+  line-height: 1;
+}
+.about-stat-visitors .about-stat-num { color: var(--green); }
+.about-stat-label {
+  font-size: .7rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .07em;
+  color: var(--text-3);
+}
+
+/* ── Two-column content ── */
+.about-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+@media (max-width: 700px) { .about-content { grid-template-columns: 1fr; } }
+
+.about-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r2);
+  padding: 1.5rem 1.6rem;
+  box-shadow: var(--shadow-sm);
+}
+.about-card-title {
+  display: flex; align-items: center; gap: .55rem;
+  font-family: var(--f-head);
+  font-size: .95rem; font-weight: 800;
+  color: var(--text); letter-spacing: -.02em;
+  margin-bottom: .9rem;
+}
+.about-card-icon { font-size: 1rem; }
+.about-card p {
+  font-size: .86rem; color: var(--text-2); line-height: 1.78;
+  margin-bottom: .75rem;
+}
+.about-card p:last-child { margin-bottom: 0; }
+.about-card p code {
+  font-family: var(--f-mono); font-size: .79rem;
+  background: var(--bg2); border: 1px solid var(--border1);
+  color: var(--accent); padding: .05rem .3rem; border-radius: 4px;
+}
+
+.about-list {
+  list-style: none; padding: 0;
+  display: flex; flex-direction: column; gap: .55rem;
+}
+.about-list li {
+  font-size: .85rem; color: var(--text-2); line-height: 1.6;
+  padding-left: 1.1rem;
+  position: relative;
+}
+.about-list li::before {
+  content: '›';
+  position: absolute; left: 0;
+  color: var(--accent); font-weight: 700;
+}
+.about-list strong { color: var(--text); font-weight: 600; }
+
+/* ── GitHub CTA ── */
+.about-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+  border: 1px solid var(--border1);
+  border-radius: var(--r2);
+  padding: 1.6rem 2rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow-md);
+}
+.about-cta-text h3 {
+  font-family: var(--f-head);
+  font-size: 1.05rem; font-weight: 800;
+  color: var(--text); letter-spacing: -.02em;
+  margin-bottom: .25rem;
+}
+.about-cta-text p {
+  font-size: .84rem; color: var(--text-2); line-height: 1.5;
+}
+
+.about-github-btn {
+  display: inline-flex; align-items: center; gap: .55rem;
+  background: var(--text);
+  color: var(--bg);
+  font-family: var(--f-body); font-size: .85rem; font-weight: 700;
+  text-decoration: none;
+  border-radius: var(--r);
+  padding: .72rem 1.4rem;
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
+  transition: opacity .15s, transform .12s, box-shadow .15s;
+  flex-shrink: 0;
+}
+.about-github-btn:hover {
+  opacity: .88;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,0,0,.35);
+}
+.about-github-btn:active { transform: scale(.97); }
+.about-star-icon {
+  color: var(--yellow);
+  font-size: 1rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 4px rgba(245,158,11,.5));
+}
+
+/* ── Footer ── */
+.about-footer {
+  display: flex; align-items: center; gap: .65rem;
+  flex-wrap: wrap;
+  font-family: var(--f-mono); font-size: .7rem;
+  color: var(--text-3);
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+.about-footer-sep { color: var(--border2); }
+
+/* About responsive */
+@media (max-width: 640px) {
+  .about-wrap { padding: 1.5rem .9rem 2.5rem; }
+  .about-hero { gap: 1rem; }
+  .about-hero-graphic { width: 56px; height: 56px; }
+  .about-title { font-size: 1.7rem; }
+  .about-subtitle { font-size: .85rem; }
+  .about-stat { padding: .9rem .6rem; }
+  .about-stat-num { font-size: 1.35rem; }
+  .about-cta { padding: 1.2rem 1.2rem; flex-direction: column; align-items: flex-start; }
+  .about-github-btn { width: 100%; justify-content: center; }
+}

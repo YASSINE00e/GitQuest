@@ -2343,3 +2343,37 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   document.getElementById('ex-term').style.display = 'none';
   showToast('Progress reset', 'err');
 });
+
+/* ══════════════════════════════════════════════
+   ABOUT PAGE — visitor counter + GitHub link
+══════════════════════════════════════════════ */
+(function initAbout() {
+  // ── Visitor counter ──
+  // Counts unique sessions using localStorage.
+  // Each new browser session (or first ever visit) increments the counter.
+  const VISIT_KEY    = 'gq_visits_total';
+  const SESSION_KEY  = 'gq_session_counted';
+
+  let total = parseInt(localStorage.getItem(VISIT_KEY) || '0', 10);
+
+  // Only count once per browser session (sessionStorage resets on tab close)
+  if (!sessionStorage.getItem(SESSION_KEY)) {
+    total += 1;
+    localStorage.setItem(VISIT_KEY, total);
+    sessionStorage.setItem(SESSION_KEY, '1');
+  }
+
+  // Update the counter display whenever the About tab is shown
+  function updateVisitorDisplay() {
+    const el = document.getElementById('visitor-count');
+    if (el) el.textContent = total.toLocaleString();
+  }
+
+  // Also update on tab switch
+  document.querySelectorAll('.tab-btn[data-tab="about"]').forEach(btn => {
+    btn.addEventListener('click', () => setTimeout(updateVisitorDisplay, 50));
+  });
+
+  // Run on load in case About is the first tab shown
+  updateVisitorDisplay();
+})();
