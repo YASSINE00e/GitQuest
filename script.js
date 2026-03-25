@@ -1014,7 +1014,10 @@ const Sandbox = (() => {
     return `<span class="t-err">bash: ${esc(cmd)}: command not found</span>`;
   }
 
-  function getPrompt() { return `user@gitquest:<span class="t-info">${cwd}</span>$`; }
+  function getPrompt() {
+    const name = (Storage.getPlayer() || 'user').toLowerCase().replace(/\s+/g,'');
+    return `<span class="t-info">${name}</span><span class="t-info">@gitquest</span>:<span class="t-info">${cwd}</span>$`;
+  }
 
   function getState() {
     return {
@@ -2308,6 +2311,11 @@ function launch(name) {
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('player-display').textContent = player;
   document.getElementById('score-display').textContent = progress.score;
+
+  const prompt = Sandbox.getPrompt() + '&nbsp;';
+  document.getElementById('ex-ps1').innerHTML = prompt;
+  document.getElementById('sb-ps1').innerHTML = prompt;
+
   initExercises();
   buildCheatSheet();
 }
@@ -2315,33 +2323,19 @@ function launch(name) {
 document.getElementById('start-btn').addEventListener('click', () => launch(nicknameInput.value));
 nicknameInput.addEventListener('keydown', e => { if(e.key==='Enter') launch(nicknameInput.value); });
 
+document.getElementById('logo-btn').addEventListener('click', () => {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelector('[data-tab="about"]').classList.add('active');
+  document.getElementById('tab-about').classList.add('active');
+});
+
 /* Reset */
 document.getElementById('reset-btn').addEventListener('click', () => {
   if (!confirm('Reset all progress? This cannot be undone.')) return;
   Storage.reset();
   localStorage.removeItem('gq_tut');
-  tutProgress = {};
-  tutorialInited = false;
-  progress = { completed:[], hintUsed:[], score:0 };
-  document.getElementById('score-display').textContent = '0';
-  activeId = null;
-  buildSidebar();
-  document.getElementById('ex-detail').innerHTML = `
-    <div class="ex-empty">
-      <svg width="44" height="44" viewBox="0 0 40 40" fill="none" opacity=".18">
-        <circle cx="20" cy="20" r="19" stroke="currentColor" stroke-width="1.4"/>
-        <circle cx="11" cy="13" r="4" fill="currentColor"/>
-        <circle cx="29" cy="13" r="4" fill="currentColor"/>
-        <circle cx="20" cy="30" r="4" fill="currentColor"/>
-        <line x1="11" y1="13" x2="20" y2="30" stroke="currentColor" stroke-width="1.4"/>
-        <line x1="29" y1="13" x2="20" y2="30" stroke="currentColor" stroke-width="1.4"/>
-        <line x1="11" y1="13" x2="29" y2="13" stroke="currentColor" stroke-width="1.4"/>
-      </svg>
-      <p class="empty-h">Pick an exercise</p>
-      <p class="empty-p">Select a mission from the sidebar to begin</p>
-    </div>`;
-  document.getElementById('ex-term').style.display = 'none';
-  showToast('Progress reset', 'err');
+  window.location.reload();
 });
 
 /* ══════════════════════════════════════════════

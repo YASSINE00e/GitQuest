@@ -282,7 +282,14 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
-.topbar-brand { display: flex; align-items: center; gap: .55rem; flex: 1; min-width: 0; }
+.topbar-holder {flex: 1;}
+.topbar-brand {
+  display: flex; align-items: center; gap: .55rem; min-width: 0;
+  background: none; border: none; padding: 0; cursor: pointer;
+  text-decoration: none;
+}
+.topbar-brand:hover .topbar-name { color: var(--accent); }
+.topbar-brand:hover svg { opacity: .8; }
 .topbar-name {
   font-family: var(--f-head);
   font-size: .97rem; font-weight: 800;
