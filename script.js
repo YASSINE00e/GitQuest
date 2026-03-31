@@ -1016,7 +1016,7 @@ const Sandbox = (() => {
 
   function getPrompt() {
     const name = (Storage.getPlayer() || 'user').toLowerCase().replace(/\s+/g,'');
-    return `<span class="t-info">${name}</span><span class="t-info">@gitquest</span>:<span class="t-info">${cwd}</span>$`;
+    return `<span class="t-info">${name}</span><span style="color:var(--text-3)">@gitquest</span>:<span class="t-info">${cwd}</span>$`;
   }
 
   function getState() {
@@ -2298,31 +2298,206 @@ function escHtml(s) {
   renderGraph();
 })();
 
-/* Nickname / launch flow */
-const nicknameInput = document.getElementById('nickname-input');
-const savedPlayer   = Storage.getPlayer();
-if (savedPlayer) nicknameInput.value = savedPlayer;
-
+/* ══════════════════════════════════════════════
+   ONBOARDING STEPPER
+   4 steps: Welcome → Features → How it works → Callsign
+   Returning users who already have a name skip straight to app.
+══════════════════════════════════════════════ */
 function launch(name) {
-  const player = name.trim() || 'Player';
+  const player = (name || '').trim() || 'Player';
   Storage.setPlayer(player);
   progress = Storage.getProgress();
+
+  // Hide onboarding, reveal app
+  const ob = document.getElementById('onboarding');
+  if (ob) {
+    ob.style.opacity = '0';
+    ob.style.transition = 'opacity .35s';
+    setTimeout(() => ob.classList.add('hidden'), 360);
+  }
   document.getElementById('nickname-overlay').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('player-display').textContent = player;
   document.getElementById('score-display').textContent = progress.score;
 
+  // Initialise prompts with the player's callsign
   const prompt = Sandbox.getPrompt() + '&nbsp;';
   document.getElementById('ex-ps1').innerHTML = prompt;
   document.getElementById('sb-ps1').innerHTML = prompt;
 
   initExercises();
   buildCheatSheet();
+
+  // Autofocus sandbox input
+  setTimeout(() => {
+    const sbIn = document.getElementById('sb-in');
+    if (sbIn) sbIn.focus();
+  }, 420);
 }
 
-document.getElementById('start-btn').addEventListener('click', () => launch(nicknameInput.value));
-nicknameInput.addEventListener('keydown', e => { if(e.key==='Enter') launch(nicknameInput.value); });
+(function initOnboarding() {
+  const TOTAL_STEPS = 4;
+  let currentStep = 0;
+  let isAnimating = false;
 
+  const obEl     = document.getElementById('onboarding');
+  const nextBtn  = document.getElementById('ob-next');
+  const backBtn  = document.getElementById('ob-back');
+  const skipBtn  = document.getElementById('ob-skip');
+  const nextLbl  = document.getElementById('ob-next-label');
+  const dots     = document.querySelectorAll('.ob-dot');
+  const nicknameEl = document.getElementById('ob-nickname');
+
+  // Pre-fill if returning user
+  const savedPlayer = Storage.getPlayer();
+  if (savedPlayer) {
+    // Returning user: skip onboarding entirely
+    if (nicknameEl) nicknameEl.value = savedPlayer;
+    obEl.classList.add('hidden');
+    launch(savedPlayer);
+    return;
+  }
+
+  // ── Helpers ──
+  function getStepEl(i) { return document.getElementById('ob-step-' + i); }
+
+  function updateDots(step) {
+    dots.forEach((d, i) => {
+      d.classList.toggle('ob-dot-active', i === step);
+    });
+    const progress = document.querySelector('.ob-progress');
+    if (progress) {
+      progress.setAttribute('aria-valuenow', step + 1);
+      progress.setAttribute('aria-label', `Step ${step + 1} of ${TOTAL_STEPS}`);
+    }
+  }
+
+  function updateNav(step) {
+    backBtn.style.visibility = step === 0 ? 'hidden' : 'visible';
+    const isLast = step === TOTAL_STEPS - 1;
+    nextLbl.textContent = step === 0 ? 'Get Started' : isLast ? 'Launch GitQuest' : 'Next';
+    nextBtn.classList.toggle('ob-launch', isLast);
+  }
+
+  // ── Stagger step content when entering ──
+  function staggerStepContent(stepEl) {
+    // Stagger child elements: feature cards, how-items, etc.
+    const children = stepEl.querySelectorAll(
+      '.ob-feat, .ob-how-item, .ob-how-connector, .ob-tag, .ob-logo, .ob-title, .ob-lead, .ob-callsign-icon, .ob-step-title, .ob-step-sub, .ob-input-wrap, .ob-footnote, .ob-section-header'
+    );
+    children.forEach((el, i) => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(10px)';
+      el.style.transition = 'none';
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          el.style.transition = `opacity .3s ease, transform .3s ease`;
+          el.style.opacity = '1';
+          el.style.transform = 'none';
+        }, 60 + i * 55);
+      });
+    });
+  }
+
+  // ── Transition between steps ──
+  function goTo(nextIdx, direction /* 'fwd' | 'bwd' */) {
+    if (isAnimating || nextIdx === currentStep) return;
+    if (nextIdx < 0 || nextIdx >= TOTAL_STEPS) return;
+    isAnimating = true;
+
+    const outEl = getStepEl(currentStep);
+    const inEl  = getStepEl(nextIdx);
+
+    // Show incoming, set slide classes
+    inEl.classList.remove('ob-step-hidden');
+    inEl.setAttribute('aria-hidden', 'false');
+
+    const outClass = direction === 'fwd' ? 'ob-exiting-fwd' : 'ob-exiting-bwd';
+    const inClass  = direction === 'fwd' ? 'ob-entering-fwd' : 'ob-entering-bwd';
+
+    outEl.classList.add(outClass);
+    inEl.classList.add(inClass);
+
+    // After animation completes, clean up
+    const dur = 380;
+    setTimeout(() => {
+      outEl.classList.remove(outClass);
+      outEl.classList.add('ob-step-hidden');
+      outEl.setAttribute('aria-hidden', 'true');
+      inEl.classList.remove(inClass);
+      currentStep = nextIdx;
+      isAnimating = false;
+      updateDots(currentStep);
+      updateNav(currentStep);
+
+      // Stagger step content after slide-in
+      staggerStepContent(inEl);
+
+      // Auto-focus nickname input on last step
+      if (currentStep === TOTAL_STEPS - 1 && nicknameEl) {
+        setTimeout(() => nicknameEl.focus(), 100);
+      }
+    }, dur);
+  }
+
+  function doNext() {
+    if (currentStep < TOTAL_STEPS - 1) {
+      goTo(currentStep + 1, 'fwd');
+    } else {
+      // Final step — launch
+      const name = nicknameEl ? nicknameEl.value.trim() : '';
+      launch(name || 'Player');
+    }
+  }
+
+  function doBack() {
+    if (currentStep > 0) goTo(currentStep - 1, 'bwd');
+  }
+
+  function doSkip() {
+    const name = nicknameEl ? nicknameEl.value.trim() : '';
+    launch(name || 'Player');
+  }
+
+  // ── Event wiring ──
+  nextBtn.addEventListener('click', doNext);
+  backBtn.addEventListener('click', doBack);
+  skipBtn.addEventListener('click', doSkip);
+
+  // Dot clicks (jump to step)
+  dots.forEach((d, i) => {
+    d.style.cursor = 'pointer';
+    d.addEventListener('click', () => {
+      if (i < currentStep) goTo(i, 'bwd');
+      else if (i > currentStep) goTo(i, 'fwd');
+    });
+  });
+
+  // Keyboard navigation
+  document.addEventListener('keydown', e => {
+    if (obEl.classList.contains('hidden')) return;
+    if (e.key === 'Enter' && document.activeElement !== nicknameEl) {
+      e.preventDefault(); doNext();
+    }
+    if (e.key === 'Escape') doSkip();
+    if (e.key === 'ArrowRight') doNext();
+    if (e.key === 'ArrowLeft')  doBack();
+  });
+
+  // Enter in nickname input → launch
+  if (nicknameEl) {
+    nicknameEl.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); doNext(); }
+    });
+  }
+
+  // Init
+  updateDots(0);
+  updateNav(0);
+  staggerStepContent(getStepEl(0));
+})();
+
+// Fix 3: logo navigates to About tab
 document.getElementById('logo-btn').addEventListener('click', () => {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));

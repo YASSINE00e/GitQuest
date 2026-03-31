@@ -13,8 +13,200 @@
 </head>
 <body>
 
-  <!-- ── NICKNAME MODAL ── -->
-  <div id="nickname-overlay" class="overlay">
+
+  <!-- ══════════════════════════════════════════
+       ONBOARDING  (replaces plain nickname modal)
+       4 steps: Welcome → Features → How it works → Callsign
+  ══════════════════════════════════════════ -->
+  <div id="onboarding" class="ob-root" role="dialog" aria-modal="true" aria-label="Welcome to GitQuest">
+
+    <!-- Ambient background orbs -->
+    <div class="ob-orb ob-orb-1" aria-hidden="true"></div>
+    <div class="ob-orb ob-orb-2" aria-hidden="true"></div>
+    <div class="ob-orb ob-orb-3" aria-hidden="true"></div>
+
+    <div class="ob-card" id="ob-card">
+
+      <!-- Progress dots -->
+      <div class="ob-progress" role="progressbar" aria-valuenow="1" aria-valuemin="1" aria-valuemax="4" aria-label="Step 1 of 4">
+        <span class="ob-dot ob-dot-active" data-step="0"></span>
+        <span class="ob-dot" data-step="1"></span>
+        <span class="ob-dot" data-step="2"></span>
+        <span class="ob-dot" data-step="3"></span>
+      </div>
+
+      <!-- Skip -->
+      <button class="ob-skip" id="ob-skip" aria-label="Skip onboarding">Skip</button>
+
+      <!-- ── Slide viewport ── -->
+      <div class="ob-viewport" aria-live="polite">
+
+        <!-- STEP 0: Welcome -->
+        <div class="ob-step" id="ob-step-0" aria-hidden="false">
+          <div class="ob-hero">
+            <div class="ob-logo" aria-hidden="true">
+              <svg width="56" height="56" viewBox="0 0 40 40" fill="none">
+                <circle cx="20" cy="20" r="19" stroke="var(--accent)" stroke-width="1.3" opacity=".35"/>
+                <circle cx="11" cy="13" r="4.5" fill="var(--accent)"/>
+                <circle cx="29" cy="13" r="4.5" fill="var(--accent)"/>
+                <circle cx="20" cy="30" r="4.5" fill="var(--accent)"/>
+                <line x1="11" y1="13" x2="20" y2="30" stroke="var(--accent)" stroke-width="1.6" stroke-opacity=".5"/>
+                <line x1="29" y1="13" x2="20" y2="30" stroke="var(--accent)" stroke-width="1.6" stroke-opacity=".5"/>
+                <line x1="11" y1="13" x2="29" y2="13" stroke="var(--accent)" stroke-width="1.6" stroke-opacity=".5"/>
+              </svg>
+            </div>
+            <h1 class="ob-title">GitQuest</h1>
+            <p class="ob-lead">The interactive Git training environment where you learn by <em>doing</em>, not by reading.</p>
+            <div class="ob-tags" aria-hidden="true">
+              <span class="ob-tag">27 Exercises</span>
+              <span class="ob-tag">8 Lessons</span>
+              <span class="ob-tag">Live Sandbox</span>
+              <span class="ob-tag">100% Free</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 1: Features -->
+        <div class="ob-step ob-step-hidden" id="ob-step-1" aria-hidden="true">
+          <div class="ob-section-header">
+            <h2 class="ob-step-title">Everything you need</h2>
+            <p class="ob-step-sub">Four tools, one mission — make you Git-fluent.</p>
+          </div>
+          <div class="ob-features">
+            <div class="ob-feat">
+              <div class="ob-feat-icon ob-icon-exercises" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+              </div>
+              <div class="ob-feat-body">
+                <h3>Exercises</h3>
+                <p>27 missions from beginner to advanced. Type the right command, earn XP, level up.</p>
+              </div>
+            </div>
+            <div class="ob-feat">
+              <div class="ob-feat-icon ob-icon-tutorial" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+              </div>
+              <div class="ob-feat-body">
+                <h3>Tutorial</h3>
+                <p>8 structured lessons — from what Git is to rebasing and advanced workflows.</p>
+              </div>
+            </div>
+            <div class="ob-feat">
+              <div class="ob-feat-icon ob-icon-sandbox" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+              </div>
+              <div class="ob-feat-body">
+                <h3>Sandbox</h3>
+                <p>Free-form terminal with a live commit graph. Create files, branch, merge — safely.</p>
+              </div>
+            </div>
+            <div class="ob-feat">
+              <div class="ob-feat-icon ob-icon-cheat" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </div>
+              <div class="ob-feat-body">
+                <h3>Cheat Sheet</h3>
+                <p>60+ Git commands in 10 categories. Searchable, always one tab away.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: How it works -->
+        <div class="ob-step ob-step-hidden" id="ob-step-2" aria-hidden="true">
+          <div class="ob-section-header">
+            <h2 class="ob-step-title">How it works</h2>
+            <p class="ob-step-sub">Three steps to Git mastery.</p>
+          </div>
+          <div class="ob-steps-list">
+            <div class="ob-how-item">
+              <div class="ob-how-num" aria-hidden="true">01</div>
+              <div class="ob-how-body">
+                <h3>Pick a mission</h3>
+                <p>Choose from 27 exercises ordered by difficulty. Read the goal, optionally reveal a hint.</p>
+              </div>
+            </div>
+            <div class="ob-how-connector" aria-hidden="true"></div>
+            <div class="ob-how-item">
+              <div class="ob-how-num" aria-hidden="true">02</div>
+              <div class="ob-how-body">
+                <h3>Type the command</h3>
+                <p>Enter the correct Git command in the terminal. Autocomplete helps as you type. Press Enter.</p>
+              </div>
+            </div>
+            <div class="ob-how-connector" aria-hidden="true"></div>
+            <div class="ob-how-item">
+              <div class="ob-how-num" aria-hidden="true">03</div>
+              <div class="ob-how-body">
+                <h3>Earn XP &amp; repeat</h3>
+                <p>Correct commands award XP. Your progress is saved automatically. No account needed.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tiny terminal demo -->
+          <div class="ob-terminal-demo" aria-hidden="true">
+            <div class="ob-term-demo-bar">
+              <span class="ob-term-demo-dot"></span>
+              <span class="ob-term-demo-dot"></span>
+              <span class="ob-term-demo-dot"></span>
+            </div>
+            <div class="ob-term-demo-body">
+              <span class="ob-term-line"><span class="ps">you@gitquest:~/repo$</span> <span class="cmd">git init</span></span>
+              <span class="ob-term-line"><span class="out">Initialized empty Git repository in ~/repo/.git/</span></span>
+              <span class="ob-term-line"><span class="ps">you@gitquest:~/repo$</span> <span class="cmd">git add .</span></span>
+              <span class="ob-term-line"><span class="ps">you@gitquest:~/repo$</span> <span class="ob-term-cursor"></span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3: Callsign -->
+        <div class="ob-step ob-step-hidden" id="ob-step-3" aria-hidden="true">
+          <div class="ob-callsign-wrap">
+            <div class="ob-callsign-icon" aria-hidden="true">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <h2 class="ob-step-title">What's your callsign?</h2>
+            <p class="ob-step-sub">This is how you'll appear in the session. Pick anything — it stays local.</p>
+            <div class="ob-input-wrap">
+              <label class="ob-input-label" for="ob-nickname">Your callsign</label>
+              <input
+                id="ob-nickname"
+                class="ob-input"
+                type="text"
+                placeholder="e.g. dev42"
+                maxlength="20"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+              />
+            </div>
+            <p class="ob-footnote">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              Saved locally · No account · No tracking
+            </p>
+          </div>
+        </div>
+
+      </div><!-- /.ob-viewport -->
+
+      <!-- Navigation -->
+      <div class="ob-nav">
+        <button class="ob-btn-back" id="ob-back" aria-label="Go to previous step" style="visibility:hidden">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Back
+        </button>
+        <button class="ob-btn-next" id="ob-next">
+          <span id="ob-next-label">Get Started</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+
+    </div><!-- /.ob-card -->
+  </div><!-- /#onboarding -->
+
+  <!-- ── NICKNAME MODAL (returning users, hidden by default) ── -->
+  <div id="nickname-overlay" class="overlay hidden">
     <div class="modal">
       <div class="modal-glow-orb"></div>
       <div class="modal-brand">
@@ -35,7 +227,7 @@
       <div class="modal-form">
         <label class="field-label" for="nickname-input">Your callsign</label>
         <input id="nickname-input" class="field-input" type="text" placeholder="e.g. dev42" maxlength="20" autocomplete="off" />
-        <button id="start-btn" class="btn-primary">Start Session <span class="btn-arr">→</span></button>
+        <button id="start-btn" class="btn-primary">Continue <span class="btn-arr">→</span></button>
       </div>
       <p class="modal-footnote">Progress is saved locally · No account needed</p>
     </div>
@@ -45,7 +237,6 @@
   <div id="app" class="hidden">
 
     <header class="topbar">
-      <div class="topbar-holder">
       <button class="topbar-brand" id="logo-btn" aria-label="Go to About page">
         <svg width="18" height="18" viewBox="0 0 40 40" fill="none">
           <circle cx="20" cy="20" r="19" stroke="var(--accent)" stroke-width="1.6"/>
@@ -57,7 +248,7 @@
           <line x1="11" y1="13" x2="29" y2="13" stroke="var(--accent)" stroke-width="1.6" stroke-opacity=".6"/>
         </svg>
         <span class="topbar-name">GitQuest</span>
-      </button></div>
+      </button>
 
       <nav class="tab-nav" role="navigation">
         <button class="tab-btn active" data-tab="exercises">Exercises</button>
